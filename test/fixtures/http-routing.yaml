@@ -1,0 +1,29 @@
+processes:
+  - name: http
+    command: ./test/processes/http/run
+    config:
+      port: 8080
+      process: router
+
+  - name: router
+    command: ./test/processes/router/run
+    config:
+      routes:
+        - method: get
+          path: /
+          process: hello-world
+        - method: get
+          path: /health
+          process: health-check
+
+  - name: hello-world
+    command: ./test/processes/constant/run
+    config:
+      json:
+        body: Hello, world!
+
+  - name: health-check
+    commmand: ./test/processes/constant/run
+    config:
+      json:
+        body: Everything is awesome.
