@@ -27,6 +27,7 @@ class App
     $stderr.puts "Processes: #{JSON.pretty_generate(processes)}"
     $stderr.puts
 
+    @running = true
     pids = start processes, sockets
     begin
       pids.each { |pid| Process.wait(pid) }
@@ -64,13 +65,20 @@ class App
       config_file.open('w') do |f|
         JSON.dump(config, f)
       end
+      server = sockets[name]
       Thread.new do
         Open3.popen2(command, config_file.to_s) { |stdin, stdout, wait_thr|
           pids << wait_thr.pid
-          s = sockets[name].accept
-          stdin.write(s.gets)
-          s.write(stdout.gets)
-          s.close
+          while @running
+            begin
+              client = server.accept_nonblock
+              stdin.puts(client.gets)
+              client.puts(stdout.gets)
+              client.close
+            rescue IO::WaitReadable, Errno::EINTR
+              IO.select([server])
+            end
+          end
           stdin.close
           stdout.close
           wait_thr.wait
@@ -82,6 +90,8 @@ class App
 
   def stop(pids, sockets)
     $stderr.puts 'Stopping...'
+    @running = false
+
     pids.each do |pid|
       begin
         Process.kill 0, pid

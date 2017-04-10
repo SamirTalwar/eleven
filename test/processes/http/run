@@ -9,12 +9,12 @@ const readline = require('readline');
 fs.readFile(process.argv[2], (error, contents) => {
   const {port, process} = JSON.parse(contents);
   const socket = new net.Socket();
-  socket.connect(process, () => {
-    const rl = readline.createInterface({
-      input: socket,
-      output: socket,
-    });
-    const server = http.createServer((request, response) => {
+  const server = http.createServer((request, response) => {
+    socket.connect(process, () => {
+      const rl = readline.createInterface({
+        input: socket,
+        output: socket,
+      });
       socket.write('{}' + os.EOL);
       rl.once('line', line => {
         const body = JSON.parse(line).body;
@@ -23,7 +23,7 @@ fs.readFile(process.argv[2], (error, contents) => {
         response.end();
       });
     });
-    server.listen(port, () => {
-    });
+  });
+  server.listen(port, () => {
   });
 });
