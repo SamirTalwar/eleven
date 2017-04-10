@@ -25,10 +25,12 @@ class App
 
     processes, sockets = configure()
     $stderr.puts "Processes: #{JSON.pretty_generate(processes)}"
+    $stderr.puts
 
     pids = start processes, sockets
     begin
       pids.each { |pid| Process.wait(pid) }
+    rescue Interrupt
     ensure
       stop pids, sockets
     end
@@ -83,25 +85,35 @@ class App
     pids.each do |pid|
       begin
         Process.kill 0, pid
+      rescue Errno::ESRCH
+        next
+      end
+
+      begin
         Process.kill 'TERM', pid
         begin
           Timeout.timeout 1 do
             Process.wait pid
           end
+        rescue Errno::ECHILD
         rescue Timeout::Error
-          $stderr.puts "kill -9 #{pid}"
+          $stderr.puts "Forcefully terminating #{pid}..."
           Process.kill 'KILL', pid
-          Process.wait pid
+          begin
+            Process.wait pid
+          rescue Errno::ECHILD
+          end
         end
-      rescue Errno::ESRCH
       rescue StandardError => error
-        $stderr.puts "Failed to kill PID #{pid}.\n#{error}"
+        $stderr.puts "Failed to kill PID #{pid}. #{error.class}: #{error.message}"
       end
     end
 
     sockets.each do |name, socket|
       socket.close
     end
+
+    $stderr.puts 'Stopped.'
   end
 
   def tear_down
