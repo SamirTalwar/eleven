@@ -1,3 +1,0 @@
-zsh
--c
-./app test/fixtures/http.yaml & pid=$! && zsh -e -u -opipefail /dev/stdin ; kill $pid
