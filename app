@@ -45,12 +45,9 @@ class App
     configuration = YAML.load(File.read(@app_file))
     sockets = {}
     processes = configuration['processes']
-      .group_by { |process| process['name'] }
-      .map { |name, ps|
-        process = ps[0]
+      .each { |name, process|
         socket = UNIXServer.new((@socket_dir + "#{name}.sock").to_s)
         sockets[name] = socket
-        [name, process]
       }
       .map { |name, process|
         command = process['command']

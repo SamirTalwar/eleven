@@ -1,11 +1,11 @@
 processes:
-  - name: http
+  http:
     command: ./test/processes/http/run
     config:
       port: 8080
       process: hello-world
 
-  - name: hello-world
+  hello-world:
     command: ./test/processes/constant/run
     config:
       json:

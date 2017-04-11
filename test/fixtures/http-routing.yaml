@@ -1,11 +1,11 @@
 processes:
-  - name: http
+  http:
     command: ./test/processes/http/run
     config:
       port: 8080
       process: router
 
-  - name: router
+  router:
     command: ./test/processes/router/run
     config:
       routes:
@@ -16,14 +16,14 @@ processes:
           path: /health
           process: health-check
 
-  - name: hello-world
+  hello-world:
     command: ./test/processes/constant/run
     config:
       json:
         status: 200
         body: Hello, world!
 
-  - name: health-check
+  health-check:
     command: ./test/processes/constant/run
     config:
       json:
