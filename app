@@ -132,13 +132,21 @@ class App
     FileUtils.rm_r @dir
   end
 
-  def reference_sockets(config, sockets)
-    config.each do |key, value|
-      if value.is_a?(Hash)
-        reference_sockets(value, sockets)
-      elsif key == 'process'
-        config[key] = sockets[value].path
+  def reference_sockets(node, sockets)
+    if node.is_a?(Hash)
+      node.each do |key, value|
+        if key == 'process'
+          node[key] = sockets[value].path
+        else
+          node[key] = reference_sockets(value, sockets)
+        end
       end
+    elsif node.is_a?(Array)
+      node.collect { |value|
+        reference_sockets(value, sockets)
+      }
+    else
+      node
     end
   end
 

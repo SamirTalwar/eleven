@@ -23,7 +23,7 @@ processes:
         body: Hello, world!
 
   - name: health-check
-    commmand: ./test/processes/constant/run
+    command: ./test/processes/constant/run
     config:
       json:
         body: Everything is awesome.
