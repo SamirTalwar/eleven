@@ -9,6 +9,8 @@ require 'timeout'
 require 'tmpdir'
 require 'yaml'
 
+DEBUG=ENV.include?('DEBUG')
+
 class App
   def initialize(app_file)
     @app_file = app_file
@@ -20,12 +22,12 @@ class App
   end
 
   def run!
-    $stderr.puts "Application:, #{@app_file}"
-    $stderr.puts "Directory:, #{@dir}"
+    debug "Application: #{@app_file}"
+    debug "Directory: #{@dir}"
 
     processes, sockets = configure()
-    $stderr.puts "Processes: #{JSON.pretty_generate(processes)}"
-    $stderr.puts
+    debug "Processes: #{JSON.pretty_generate(processes)}"
+    debug
 
     @running = true
     pids = start processes, sockets
@@ -138,6 +140,10 @@ class App
         config[key] = sockets[value].path
       end
     end
+  end
+
+  def debug(*strings)
+    $stderr.puts(*strings) if DEBUG
   end
 end
 

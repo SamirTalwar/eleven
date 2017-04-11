@@ -7,6 +7,7 @@ check() {
   }
 }
 
+check http 'HTTPie'
 check node 'node.js'
 check ruby 'Ruby'
 check zsh
