@@ -24,18 +24,25 @@ This project came out of several discussions at [Socrates Canaries 2017][]. Cont
 ## To-Do List
 
 Configuration:
+- [x] Provide configuration to processes.
 - [ ] Pass environment variables to processes.
 - [ ] Fill configuration properties with environment variables.
 - [ ] Validate the configuration file ahead of time.
 - [ ] Allow processes to provide a config schema.
 
+Messaging:
+- [x] Connect processes via Unix sockets.
+- [ ] Come up with a response format for errors.
+- [ ] Find a message format that allows for streaming fields. Big HTTP bodies don't like being in JSON.
+
 Reliability:
+- [x] Clean up sockets and configuration on exit.
+- [x] When receiving SIGINT/SIGTERM, terminate child processes.
+- [x] If child processes don't terminate, send SIGKILL.
 - [ ] If a process crashes, crash the whole thing.
 - [ ] Experiment with Erlang/Elixir for reliable restarts.
-- [ ] Come up with a response format for errors.
 - [ ] Detect timeouts and restart the offending process.
 - [ ] Scale and load-balance processes similarly to Docker Compose.
-- [ ] Find a message format that allows for streaming fields. Big HTTP bodies don't like being in JSON.
 
 Logging:
 - [ ] Prefix process STDERR with the process name.
