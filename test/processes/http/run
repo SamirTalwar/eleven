@@ -1,24 +1,30 @@
 #!/usr/bin/env node
 
-const http = require('http');
 const fs = require('fs');
+const http = require('http');
 const net = require('net');
 const os = require('os');
 const readline = require('readline');
+const url = require('url');
 
 fs.readFile(process.argv[2], (error, contents) => {
   const {port, process} = JSON.parse(contents);
   const socket = new net.Socket();
   const server = http.createServer((request, response) => {
+    const requestUrl = url.parse(request.url);
     socket.connect(process, () => {
       const rl = readline.createInterface({
         input: socket,
         output: socket,
       });
-      socket.write('{}' + os.EOL);
+      socket.write(JSON.stringify({
+        method: request.method,
+        path: requestUrl.pathname,
+      }));
+      socket.write(os.EOL);
       rl.once('line', line => {
-        const body = JSON.parse(line).body;
-        response.statusCode = 200;
+        const {status, body} = JSON.parse(line);
+        response.statusCode = status;
         response.write(body);
         response.end();
       });

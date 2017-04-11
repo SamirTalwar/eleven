@@ -1,0 +1,6 @@
+http --check-status --print='hb' GET :8080 | dos2unix | grep -Ev '^Date: '
+echo
+http --check-status --print='hb' GET :8080/health | dos2unix | grep -Ev '^Date: '
+echo
+http --print='hb' GET :8080/not-found | dos2unix | grep -Ev '^Date: '
+echo

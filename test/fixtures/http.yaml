@@ -9,4 +9,5 @@ processes:
     command: ./test/processes/constant/run
     config:
       json:
+        status: 200
         body: Hello, world!
