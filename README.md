@@ -2,7 +2,7 @@
 
 It rhymes with seven.
 
-Eleven is a tool for process composition. It works on a request/response model using Unix sockets. Processes can connect to the STDIN and STDOUT of other processes using sockets, using JSON to carry information.
+Eleven is an **experimental** tool for process composition. It works on a request/response model using Unix sockets. Processes can connect to the STDIN and STDOUT of other processes using sockets, using JSON to carry information.
 
 Think of it like Docker Compose but for individual applications. It won't scale containers across machines, but it will allow you to decentralise logic. Eleven lets you write technical components in one language while still using the best one for each job.
 
@@ -10,6 +10,12 @@ Take, for example, your classic microservice, with HTTP as its front-end. You ma
 
 <sup>\* I really have no idea if this is true, but run with me for a minute.</sup><br/>
 <sup>† Which is always the right choice.</sup>
+
+## Running
+
+For now, Eleven is a Ruby script with no dependencies. You can run it with `./app <path to configuration file>` (for example, `./app test/fixtures/http.yaml`).
+
+Run the tests with `make test`. If you're missing dependencies, it will ask you to install them.
 
 ## Contributors
 
