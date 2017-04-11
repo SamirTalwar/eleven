@@ -9,7 +9,7 @@ require 'timeout'
 require 'tmpdir'
 require 'yaml'
 
-DEBUG=ENV.include?('DEBUG')
+DEBUG = ENV.include?('DEBUG')
 
 class App
   def initialize(app_file)
