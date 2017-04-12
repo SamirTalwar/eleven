@@ -29,6 +29,8 @@ This project came out of several discussions at [Socrates Canaries 2017][]. Cont
 
 ## To-Do List
 
+Before we do any more of this, I'd like to spend some time experimenting with a couple of different programming languages to find the best option.
+
 Configuration:
 - [x] Provide configuration to processes.
 - [ ] Pass environment variables to processes.
