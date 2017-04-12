@@ -42,7 +42,7 @@ class App
   end
 
   def configure
-    configuration = YAML.load(File.read(@app_file))
+    configuration = YAML.load(@app_file.read)
     sockets = {}
     processes = configuration['processes']
       .each { |name, process|
@@ -153,6 +153,16 @@ class App
 end
 
 if __FILE__ == $0
-  app_file = ARGV[0]
+  if ARGV.length != 1
+    $stderr.puts "Usage: #{$0} CONFIGURATION-FILE"
+    exit 2
+  end
+
+  app_file = Pathname.new(ARGV[0])
+  unless app_file.exist?
+    $stderr.puts "\"#{app_file}\" does not exist."
+    exit 1
+  end
+
   App.new(app_file).run!
 end
