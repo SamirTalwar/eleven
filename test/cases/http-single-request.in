@@ -1,1 +1,1 @@
-http --check-status --print='hb' :8080 | dos2unix | grep -Ev '^Date: '
+http --timeout=5 --check-status --print='hb' :8080 | dos2unix | grep -Ev '^Date: '
