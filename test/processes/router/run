@@ -2,4 +2,4 @@
 
 cd "$(dirname "$0")" || exit
 
-exec go run router.go "$@"
+exec cargo run --quiet -- "$@"

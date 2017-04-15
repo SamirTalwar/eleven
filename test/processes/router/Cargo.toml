@@ -1,0 +1,10 @@
+[package]
+name = "router"
+version = "0.1.0"
+authors = ["Samir Talwar <samir@noodlesandwich.com>"]
+
+[dependencies]
+serde = "0.9"
+serde_derive = "0.9"
+serde_json = "0.9"
+unix_socket = "0.5.0"

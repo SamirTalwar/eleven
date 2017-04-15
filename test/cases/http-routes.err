@@ -1,9 +1,8 @@
-Request: {Method:GET Path:/}
-Response: {Status:200 Body:Hello, world!}
-Request: {Method:GET Path:/health}
-Response: {Status:200 Body:Everything is awesome.}
-Request: {Method:GET Path:/not-found}
-Request discarded.
-Response: {Status:404 Body:}
+Request: GET /
+Response: {"status":200,"body":"Hello, world!"}
+Request: GET /health
+Response: {"status":200,"body":"Everything is awesome."}
+Request: GET /not-found
+Response: {"status":404,"body":""}
 Stopping...
 Stopped.
