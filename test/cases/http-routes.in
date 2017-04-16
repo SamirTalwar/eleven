@@ -1,3 +1,5 @@
+#!/usr/bin/env zsh
+
 http --timeout=5 --check-status --print='hb' GET :8080 | dos2unix | grep -Ev '^Date: '
 echo
 http --timeout=5 --check-status --print='hb' GET :8080/health | dos2unix | grep -Ev '^Date: '
