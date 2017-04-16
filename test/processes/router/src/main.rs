@@ -4,7 +4,6 @@ extern crate serde_json;
 extern crate serde_derive;
 extern crate unix_socket;
 
-use std::borrow::Cow;
 use std::env;
 use std::fmt;
 use std::fs::File;
@@ -16,7 +15,7 @@ use unix_socket::UnixStream;
 
 macro_rules! print_err {
     ($($arg:tt)*) => (
-        match write!(&mut ::std::io::stderr(), $($arg)* ).map(|_| io::stderr().flush().unwrap()) {
+        match write!(&mut ::std::io::stderr(), $($arg)* ).and_then(|_| io::stderr().flush()) {
             Ok(_) => {},
             Err(x) => panic!("Unable to write to stderr (file handle closed?): {}", x),
         }
@@ -32,50 +31,62 @@ macro_rules! println_err {
     )
 }
 
-fn main() {
-    let configuration = read_configuration();
+const NOT_FOUND: &'static str = "{\"status\":404,\"body\":\"\"}\n";
 
-    let not_found_response = HttpResponse {
-        status: 404,
-        body: "".to_string(),
-    };
-    let not_found = serde_json::to_string(&not_found_response).unwrap() + "\n";
+
+fn main() {
+    let configuration = read_configuration().unwrap();
 
     let stdin = io::stdin();
     for line in stdin.lock().lines() {
-        let input = line.unwrap();
-        let request: HttpRequest = serde_json::from_str(&input).unwrap();
-        let route = configuration
-            .routes
-            .iter()
-            .find(|route| request.method == route.method && request.path == route.path);
-        println_err!("Request: {:?} {}", request.method, &request.path);
-        let response = match route {
-            Some(route) => {
-                let mut stream = UnixStream::connect(&route.process).unwrap();
-                stream.write_fmt(format_args!("{}\n", input)).unwrap();
-                let mut output = String::new();
-                stream.read_to_string(&mut output).unwrap();
-                print_err!("Response: {}", &output);
-                Cow::Owned(output)
+        match handle(&configuration, line) {
+            Ok(response) => {
+                print!("{}", response);
+                io::stdout().flush().unwrap();
             }
-            None => {
-                print_err!("Response: {}", &not_found);
-                Cow::Borrowed(&not_found)
+            Err(error) => {
+                println_err!("{}", error);
+                println!("{{}}");
             }
-        };
-        print!("{}", response);
-        io::stdout().flush().unwrap();
+        }
     }
 }
 
-fn read_configuration() -> Configuration {
-    let arg = env::args().nth(1).unwrap();
+fn handle(configuration: &Configuration, line: io::Result<String>) -> io::Result<String> {
+    let input = line?;
+    let request: HttpRequest = serde_json::from_str(&input)
+        .map_err(|error| io::Error::new(io::ErrorKind::Other, error))?;
+    let route = configuration
+        .routes
+        .iter()
+        .find(|route| request.method == route.method && request.path == route.path);
+    println_err!("Request: {:?} {}", request.method, &request.path);
+    match route {
+        Some(route) => {
+            let mut stream = UnixStream::connect(&route.process)?;
+            stream.write_fmt(format_args!("{}\n", input))?;
+            let mut output = String::new();
+            stream.read_to_string(&mut output)?;
+            print_err!("Response: {}", &output);
+            Ok(output)
+        }
+        None => {
+            print_err!("Response: {}", &NOT_FOUND);
+            Ok(NOT_FOUND.to_string())
+        }
+    }
+}
+
+fn read_configuration() -> Result<Configuration, serde_json::Error> {
+    let arg =
+        env::args()
+            .nth(1)
+            .ok_or(io::Error::new(io::ErrorKind::Other, "No argument provided.".to_string()))?;
     let file_path = &Path::new(&arg);
-    let mut file = File::open(file_path).unwrap();
+    let mut file = File::open(file_path)?;
     let mut string = String::new();
-    file.read_to_string(&mut string).unwrap();
-    serde_json::from_str(&string).unwrap()
+    file.read_to_string(&mut string)?;
+    serde_json::from_str(&string)
 }
 
 #[derive(Serialize, Deserialize)]
