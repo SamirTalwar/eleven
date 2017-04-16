@@ -1,35 +1,6 @@
-#!/usr/bin/env node
+#!/usr/bin/env zsh
 
-const fs = require('fs');
-const http = require('http');
-const net = require('net');
-const os = require('os');
-const readline = require('readline');
-const url = require('url');
+cd $(dirname $0) || exit
 
-fs.readFile(process.argv[2], (error, contents) => {
-  const {port, process} = JSON.parse(contents);
-  const socket = new net.Socket();
-  const server = http.createServer((request, response) => {
-    const requestUrl = url.parse(request.url);
-    socket.connect(process, () => {
-      const rl = readline.createInterface({
-        input: socket,
-        output: socket,
-      });
-      socket.write(JSON.stringify({
-        method: request.method,
-        path: requestUrl.pathname,
-      }));
-      socket.write(os.EOL);
-      rl.once('line', line => {
-        const {status, body} = JSON.parse(line);
-        response.statusCode = status;
-        response.write(body);
-        response.end();
-      });
-    });
-  });
-  server.listen(port, () => {
-  });
-});
+go build -o app
+exec ./app $@

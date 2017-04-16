@@ -1,17 +1,17 @@
 HTTP/1.1 200 OK
-Connection: keep-alive
-Transfer-Encoding: chunked
+Content-Length: 13
+Content-Type: text/plain; charset=utf-8
 
 Hello, world!
 
 HTTP/1.1 200 OK
-Connection: keep-alive
-Transfer-Encoding: chunked
+Content-Length: 22
+Content-Type: text/plain; charset=utf-8
 
 Everything is awesome.
 
 HTTP/1.1 404 Not Found
-Connection: keep-alive
-Transfer-Encoding: chunked
+Content-Length: 0
+Content-Type: text/plain; charset=utf-8
 
 

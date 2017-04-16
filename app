@@ -50,16 +50,15 @@ class App
   def configure
     configuration = YAML.load(@app_file.read)
     sockets = {}
-    processes = configuration['processes']
-      .each { |name, process|
-        socket = UNIXServer.new((@socket_dir + "#{name}.sock").to_s)
-        sockets[name] = socket
-      }
-      .map { |name, process|
-        command = process['command']
-        config = reference_sockets(process['config'], sockets)
-        [name, command, config]
-      }
+    configuration['processes'].each { |name, process|
+      socket = UNIXServer.new((@socket_dir + "#{name}.sock").to_s)
+      sockets[name] = socket
+    }
+    processes = configuration['processes'].map { |name, process|
+      command = process['command']
+      config = reference_sockets(process['config'], sockets)
+      [name, command, config]
+    }
     [processes, sockets]
   end
 
