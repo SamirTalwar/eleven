@@ -1,5 +1,5 @@
 #!/usr/bin/env zsh
 
-cd "$(dirname "$0")" || exit
+cd $(dirname $0) || exit
 
-exec cargo run --quiet -- "$@"
+exec cargo run --quiet -- $@
