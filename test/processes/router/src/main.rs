@@ -60,7 +60,7 @@ fn handle(configuration: &Configuration, line: io::Result<String>) -> io::Result
         .routes
         .iter()
         .find(|route| request.method == route.method && request.path == route.path);
-    println_err!("Request: {:?} {}", request.method, &request.path);
+    println_err!("Request: {}", &input);
     match route {
         Some(route) => {
             let mut stream = UnixStream::connect(&route.process)?;

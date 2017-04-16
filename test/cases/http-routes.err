@@ -1,8 +1,8 @@
-Request: GET /
+Request: {"method":"GET","path":"/"}
 Response: {"status":200,"body":"Hello, world!"}
-Request: GET /health
+Request: {"method":"GET","path":"/health"}
 Response: {"status":200,"body":"Everything is awesome."}
-Request: GET /not-found
+Request: {"method":"GET","path":"/not-found"}
 Response: {"status":404,"body":""}
 Stopping...
 Stopped.
