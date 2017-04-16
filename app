@@ -30,12 +30,18 @@ class App
     debug
 
     @running = true
-    pids = start processes, sockets
+    started = start processes, sockets
     begin
-      pids.each { |pid| Process.wait(pid) }
+      started.each do |process|
+        begin
+          Process.wait(process[:pid])
+        rescue Errno::ECHILD
+          info "Process \"#{process[:name]}\" has died."
+        end
+      end
     rescue Interrupt
     ensure
-      stop pids, sockets
+      stop started, sockets
     end
   ensure
     tear_down
@@ -58,7 +64,7 @@ class App
   end
 
   def start(processes, sockets)
-    pids = []
+    started = []
     processes.each do |name, command, config|
       config_file = @config_dir + "#{name}.config"
       config_file.open('w') do |f|
@@ -67,7 +73,7 @@ class App
       server = sockets[name]
       Thread.new do
         Open3.popen2(command, config_file.to_s) { |stdin, stdout, wait_thr|
-          pids << wait_thr.pid
+          started << {name: name, pid: wait_thr.pid}
           while @running
             begin
               client = server.accept_nonblock
@@ -84,14 +90,15 @@ class App
         }
       end
     end
-    pids
+    started
   end
 
-  def stop(pids, sockets)
-    $stderr.puts 'Stopping...'
+  def stop(started, sockets)
+    info 'Stopping...'
     @running = false
 
-    pids.each do |pid|
+    started.each do |process|
+      pid = process[:pid]
       begin
         Process.kill 0, pid
       rescue Errno::ESRCH
@@ -106,7 +113,7 @@ class App
           end
         rescue Errno::ECHILD
         rescue Timeout::Error
-          $stderr.puts "Forcefully terminating #{pid}..."
+          info "Forcefully terminating #{pid}..."
           Process.kill 'KILL', pid
           begin
             Process.wait pid
@@ -114,7 +121,7 @@ class App
           end
         end
       rescue StandardError => error
-        $stderr.puts "Failed to kill PID #{pid}. #{error.class}: #{error.message}"
+        info "Failed to kill PID #{pid}. #{error.class}: #{error.message}"
       end
     end
 
@@ -122,7 +129,7 @@ class App
       socket.close
     end
 
-    $stderr.puts 'Stopped.'
+    info 'Stopped.'
   end
 
   def tear_down
@@ -146,21 +153,25 @@ class App
       node
     end
   end
+end
 
-  def debug(*strings)
-    $stderr.puts(*strings) if DEBUG
-  end
+def info(*strings)
+  $stderr.puts(*strings)
+end
+
+def debug(*strings)
+  $stderr.puts(*strings) if DEBUG
 end
 
 if __FILE__ == $0
   if ARGV.length != 1
-    $stderr.puts "Usage: #{$0} CONFIGURATION-FILE"
+    info "Usage: #{$0} CONFIGURATION-FILE"
     exit 2
   end
 
   app_file = Pathname.new(ARGV[0])
   unless app_file.exist?
-    $stderr.puts "\"#{app_file}\" does not exist."
+    info "\"#{app_file}\" does not exist."
     exit 1
   end
 
