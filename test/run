@@ -1,0 +1,33 @@
+#!/usr/bin/env zsh
+
+set -e
+set -u
+set -o pipefail
+
+app_pid=''
+
+test_script=$(mktemp)
+cat > $test_script
+chmod +x $test_script
+
+function set_up {
+  ./app $1 &
+  app_pid=$!
+}
+
+function run_test {
+  $test_script
+}
+
+function tear_down {
+  exit_status=$?
+  if [[ -n $app_pid ]] && kill -0 $app_pid >& /dev/null; then
+    kill $app_pid
+  fi
+  rm -f $test_script
+  return $exit_status
+}
+
+trap tear_down EXIT
+set_up $1
+run_test

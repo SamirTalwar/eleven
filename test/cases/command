@@ -1,3 +1,1 @@
-zsh
--c
-./app $0 & pid=$! && zsh -e -u -opipefail /dev/stdin ; kill $pid
+./test/run
