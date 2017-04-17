@@ -21,7 +21,6 @@ function run_test {
 }
 
 function tear_down {
-  exit_status=$?
   if [[ -n $app_pid ]] && kill -0 $app_pid >& /dev/null; then
     kill $app_pid
     for i in {1..20}; do
@@ -33,7 +32,6 @@ function tear_down {
     fi
   fi
   rm -f $test_script
-  return $exit_status
 }
 
 trap tear_down EXIT
