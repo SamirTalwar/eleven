@@ -4,24 +4,22 @@ set -e
 set -u
 set -o pipefail
 
-test_script=$(mktemp)
+cd $(dirname $(dirname $0))
+
 pid_file=$(mktemp)
 pid=''
 
-cat > $test_script
-chmod +x $test_script
+command -v git > /dev/null && diff=(git diff --no-index --color) || diff=(diff)
 
 function set_up {
+  sleep 1
   ./app --detach --pid-file=$pid_file $1
   pid=$(<$pid_file)
-}
-
-function run_test {
   sleep 1
-  $test_script
 }
 
 function tear_down {
+  rm -f $pid_file
   if app_is_alive; then
     kill $pid
     for i in {1..20}; do
@@ -29,16 +27,49 @@ function tear_down {
       sleep 0.1
     done
     if app_is_alive; then
-      echo >&2 "The application (PID ${pid}) has not terminated. Better investigate."
+      echo >&2 "The application (PID ${pid}) has not terminated. Better investigate." && exit 1
     fi
   fi
-  rm -f $test_script
 }
 
 function app_is_alive {
   [[ -n $pid ]] && kill -0 $pid >& /dev/null
 }
 
+function prefix {
+  while IFS=$'\n' read line; do
+    echo -n $1
+    echo $line
+  done
+}
+
 trap tear_down EXIT
-set_up $1
-run_test
+
+success=true
+for dir in test/cases/*; do
+  echo
+  echo $dir
+  rm -f "${dir}/out.actual" "${dir}/err.actual"
+  set_up $(<"${dir}/config-path") 2> "${dir}/err.actual"
+
+  set +e
+  "./${dir}/test" > "${dir}/out.actual"
+  exit_status=$?
+  set -e
+
+  tear_down
+
+  if [[ $exit_status -eq 0 ]] \
+      && ${diff[@]} "${dir}/out" "${dir}/out.actual" > /dev/null \
+      && ${diff[@]} "${dir}/err" "${dir}/err.actual" > /dev/null; then
+    echo '  succeeded'
+  else
+    echo '  failed'
+    echo "  exit status: ${exit_status}"
+    echo "  standard output:\n$(${diff[@]} "${dir}/out" "${dir}/out.actual" | prefix '    ')"
+    echo "  standard error:\n$(${diff[@]} "${dir}/out" "${dir}/out.actual" | prefix '    ')"
+    success=false
+  fi
+done
+
+$success
