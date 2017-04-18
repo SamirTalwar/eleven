@@ -56,7 +56,7 @@ class App
       end
     rescue Interrupt
     ensure
-      stop started, sockets
+      stop started
     end
   ensure
     tear_down unless @forked
@@ -66,8 +66,7 @@ class App
     configuration = YAML.load(@app_file.read)
     sockets = {}
     configuration['processes'].each { |name, process|
-      socket = UNIXServer.new((@socket_dir + "#{name}.sock").to_s)
-      sockets[name] = socket
+      sockets[name] = (@socket_dir + "#{name}.sock").to_s
     }
     processes = configuration['processes'].map { |name, process|
       command = process['command']
@@ -84,20 +83,9 @@ class App
       config_file.open('w') do |f|
         JSON.dump(config, f)
       end
-      server = sockets[name]
       Thread.new do
-        Open3.popen2(command, config_file.to_s) { |stdin, stdout, wait_thr|
+        Open3.popen2(command, sockets[name], config_file.to_s) { |stdin, stdout, wait_thr|
           started << {name: name, pid: wait_thr.pid}
-          while @running
-            begin
-              client = server.accept_nonblock
-              stdin.puts(client.gets)
-              client.puts(stdout.gets)
-              client.close
-            rescue IO::WaitReadable, Errno::EINTR
-              IO.select([server])
-            end
-          end
           stdin.close
           stdout.close
           wait_thr.wait
@@ -107,7 +95,7 @@ class App
     started
   end
 
-  def stop(started, sockets)
+  def stop(started)
     info 'Stopping...'
     @running = false
 
@@ -139,10 +127,6 @@ class App
       end
     end
 
-    sockets.each do |name, socket|
-      socket.close
-    end
-
     info 'Stopped.'
   end
 
@@ -154,7 +138,7 @@ class App
     if node.is_a?(Hash)
       node.each do |key, value|
         if key == 'process'
-          node[key] = sockets[value].path
+          node[key] = sockets[value]
         else
           node[key] = reference_sockets(value, sockets)
         end

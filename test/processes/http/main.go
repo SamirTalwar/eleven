@@ -25,7 +25,7 @@ type HttpResponse struct {
 }
 
 func main() {
-	configuration := readConfiguration(os.Args[1])
+	configuration := readConfiguration(os.Args[2])
 
 	http.HandleFunc("/", func(response http.ResponseWriter, request *http.Request) {
 		requestStruct := HttpRequest{Method: request.Method, Path: request.URL.Path}
@@ -36,10 +36,16 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+		defer socket.Close()
 
 		err = json.NewEncoder(socket).Encode(requestStruct)
 		if err != nil {
 			panic(err)
+		}
+		if v, ok := socket.(interface {
+			CloseWrite() error
+		}); ok {
+			v.CloseWrite()
 		}
 
 		err = json.NewDecoder(socket).Decode(&responseStruct)

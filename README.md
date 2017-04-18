@@ -40,6 +40,7 @@ Configuration:
 
 Messaging:
 - [x] Connect processes via Unix sockets.
+- [ ] Use sockets for everything, with a simple bash example wrapper.
 - [ ] Come up with a response format for errors.
 - [ ] Find a message format that allows for streaming fields. Big HTTP bodies don't like being in JSON.
 
@@ -47,8 +48,7 @@ Reliability:
 - [x] Clean up sockets and configuration on exit.
 - [x] When receiving SIGINT/SIGTERM, terminate child processes.
 - [x] If child processes don't terminate, send SIGKILL.
-- [ ] If a process crashes, crash the whole thing.
-- [ ] Experiment with Erlang/Elixir for reliable restarts.
+- [ ] "Let it crash", using Erlang (?) supervisors to restart.
 - [ ] Detect timeouts and restart the offending process.
 - [ ] Scale and load-balance processes similarly to Docker Compose.
 

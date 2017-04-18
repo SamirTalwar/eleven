@@ -1,7 +1,10 @@
 #!/usr/bin/env zsh
 
-content=$(jq -c '.json' < $1)
+set -eu
 
-while IFS='' read -r input; do
-  echo $content
+socket_path=$1
+content=$(jq -c '.json' < $2)
+
+while true; do
+  socat UNIX-LISTEN:$socket_path EXEC:"echo '$content'"
 done

@@ -11,7 +11,7 @@ use std::io::prelude::*;
 use std::io;
 use std::io::Write;
 use std::path::Path;
-use unix_socket::UnixStream;
+use unix_socket::{UnixListener, UnixStream};
 
 macro_rules! print_err {
     ($($arg:tt)*) => (
@@ -37,30 +37,33 @@ const NOT_FOUND: &'static str = "{\"status\":404,\"body\":\"\"}\n";
 fn main() {
     let configuration = read_configuration().unwrap();
 
-    let stdin = io::stdin();
-    for line in stdin.lock().lines() {
-        match handle(&configuration, line) {
+    let listener = UnixListener::bind(&Path::new(&env::args().nth(1).unwrap())).unwrap();
+    for c in listener.incoming() {
+        let mut connection = c.unwrap();
+        let mut input = String::new();
+        connection.read_to_string(&mut input).unwrap();
+        match handle(&configuration, input) {
             Ok(response) => {
-                print!("{}", response);
-                io::stdout().flush().unwrap();
+                connection
+                    .write_fmt(format_args!("{}", response))
+                    .unwrap();
             }
             Err(error) => {
                 println_err!("{}", error);
-                println!("{{}}");
+                connection.write_fmt(format_args!("{{}}")).unwrap();
             }
         }
     }
 }
 
-fn handle(configuration: &Configuration, line: io::Result<String>) -> io::Result<String> {
-    let input = line?;
+fn handle(configuration: &Configuration, input: String) -> io::Result<String> {
     let request: HttpRequest = serde_json::from_str(&input)
         .map_err(|error| io::Error::new(io::ErrorKind::Other, error))?;
     let route = configuration
         .routes
         .iter()
         .find(|route| request.method == route.method && request.path == route.path);
-    println_err!("Request: {}", &input);
+    print_err!("Request: {}", &input);
     match route {
         Some(route) => {
             let mut stream = UnixStream::connect(&route.process)?;
@@ -80,7 +83,7 @@ fn handle(configuration: &Configuration, line: io::Result<String>) -> io::Result
 fn read_configuration() -> Result<Configuration, serde_json::Error> {
     let arg =
         env::args()
-            .nth(1)
+            .nth(2)
             .ok_or(io::Error::new(io::ErrorKind::Other, "No argument provided.".to_string()))?;
     let file_path = &Path::new(&arg);
     let mut file = File::open(file_path)?;
