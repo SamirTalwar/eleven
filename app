@@ -3,6 +3,7 @@
 require 'fileutils'
 require 'json'
 require 'open3'
+require 'optparse'
 require 'pathname'
 require 'socket'
 require 'timeout'
@@ -12,8 +13,11 @@ require 'yaml'
 DEBUG = ENV.include?('DEBUG')
 
 class App
-  def initialize(app_file)
+  def initialize(app_file:, detach:, pid_file:)
     @app_file = app_file
+    @detach = detach
+    @pid_file = pid_file
+
     @dir = Pathname.new(Dir.mktmpdir('eleven'))
     @socket_dir = @dir + 'sockets'
     @config_dir = @dir + 'config'
@@ -29,8 +33,19 @@ class App
     debug "Processes: #{JSON.pretty_generate(processes)}"
     debug
 
+    if @detach
+      @forked = fork
+      if @forked
+        if @pid_file
+          @pid_file.write("#{@forked}\n")
+        end
+        exit
+      end
+    end
+
     @running = true
     started = start processes, sockets
+
     begin
       started.each do |process|
         begin
@@ -44,7 +59,7 @@ class App
       stop started, sockets
     end
   ensure
-    tear_down
+    tear_down unless @forked
   end
 
   def configure
@@ -163,16 +178,31 @@ def debug(*strings)
 end
 
 if __FILE__ == $0
+  options = {
+    detach: false,
+    pid_file: nil,
+  }
+  OptionParser.new do |opts|
+    opts.banner = "Usage: #{$0} [options]"
+
+    opts.on("-d", "--detach", "Run in the background") do |v|
+      options[:detach] = v
+    end
+    opts.on("--pid-file=PID_FILE", "PID file (when detaching)") do |v|
+      options[:pid_file] = Pathname.new(v)
+    end
+  end.parse!
+
   if ARGV.length != 1
     info "Usage: #{$0} CONFIGURATION-FILE"
     exit 2
   end
 
-  app_file = Pathname.new(ARGV[0])
-  unless app_file.exist?
-    info "\"#{app_file}\" does not exist."
+  options[:app_file] = Pathname.new(ARGV[0])
+  unless options[:app_file].exist?
+    info "\"#{options[:app_file]}\" does not exist."
     exit 1
   end
 
-  App.new(app_file).run!
+  App.new(options).run!
 end

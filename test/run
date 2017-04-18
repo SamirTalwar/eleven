@@ -4,15 +4,16 @@ set -e
 set -u
 set -o pipefail
 
-app_pid=''
-
 test_script=$(mktemp)
+pid_file=$(mktemp)
+pid=''
+
 cat > $test_script
 chmod +x $test_script
 
 function set_up {
-  ./app $1 &
-  app_pid=$!
+  ./app --detach --pid-file=$pid_file $1
+  pid=$(<$pid_file)
 }
 
 function run_test {
@@ -21,17 +22,21 @@ function run_test {
 }
 
 function tear_down {
-  if [[ -n $app_pid ]] && kill -0 $app_pid >& /dev/null; then
-    kill $app_pid
+  if app_is_alive; then
+    kill $pid
     for i in {1..20}; do
-      kill -0 $app_pid >& /dev/null || break
+      app_is_alive || break
       sleep 0.1
     done
-    if kill -0 $app_pid >& /dev/null; then
-      echo >&2 "The application (PID ${app_pid}) has not terminated. Better investigate."
+    if app_is_alive; then
+      echo >&2 "The application (PID ${pid}) has not terminated. Better investigate."
     fi
   fi
   rm -f $test_script
+}
+
+function app_is_alive {
+  [[ -n $pid ]] && kill -0 $pid >& /dev/null
 }
 
 trap tear_down EXIT
