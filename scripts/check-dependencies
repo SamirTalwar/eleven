@@ -12,3 +12,5 @@ check http 'HTTPie'
 check ruby 'Ruby'
 check rustc 'Rust'
 check zsh
+check jq
+check dos2unix
