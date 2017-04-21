@@ -9,7 +9,6 @@ check() {
 
 check go 'Go'
 check http 'HTTPie'
-check node 'node.js'
 check ruby 'Ruby'
 check rustc 'Rust'
 check zsh
