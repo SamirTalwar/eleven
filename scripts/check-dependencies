@@ -7,10 +7,10 @@ check() {
   }
 }
 
+check dos2unix
 check go 'Go'
 check http 'HTTPie'
+check jq
 check ruby 'Ruby'
 check rustc 'Rust'
 check zsh
-check jq
-check dos2unix
