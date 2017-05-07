@@ -9,6 +9,9 @@ cd $(dirname $(dirname $0))
 pid_file=$(mktemp)
 pid=''
 
+out_diff_file=$(mktemp)
+err_diff_file=$(mktemp)
+
 command -v git > /dev/null && diff=(git diff --no-index --color) || diff=(diff)
 
 function set_up {
@@ -19,7 +22,7 @@ function set_up {
 }
 
 function tear_down {
-  rm -f $pid_file
+  rm -f $pid_file $out_diff_file $err_diff_file
   if app_is_alive; then
     kill $pid
     for i in {1..20}; do
@@ -53,6 +56,7 @@ fi
 
 success=true
 for dir in ${tests[@]}; do
+  test_passed=true
   echo
   echo $dir
   rm -f "${dir}/out.actual" "${dir}/err.actual"
@@ -65,15 +69,17 @@ for dir in ${tests[@]}; do
 
   tear_down
 
-  if [[ $exit_status -eq 0 ]] \
-      && ${diff[@]} "${dir}/out" "${dir}/out.actual" > /dev/null \
-      && ${diff[@]} "${dir}/err" "${dir}/err.actual" > /dev/null; then
+  [[ $exit_status -eq 0 ]] || test_passed=false
+  ${diff[@]} "${dir}/out" "${dir}/out.actual" > $out_diff_file || test_passed=false
+  ${diff[@]} "${dir}/err" "${dir}/err.actual" > $err_diff_file || test_passed=false
+
+  if $test_passed; then
     echo '  succeeded'
   else
     echo '  failed'
     echo "  exit status: ${exit_status}"
-    echo "  standard output:\n$(${diff[@]} "${dir}/out" "${dir}/out.actual" | prefix '    ')"
-    echo "  standard error:\n$(${diff[@]} "${dir}/out" "${dir}/out.actual" | prefix '    ')"
+    echo "  standard output:\n$(prefix '    ' < $out_diff_file)"
+    echo "  standard error:\n$(prefix '    ' < $err_diff_file)"
     success=false
   fi
 done
