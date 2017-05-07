@@ -76,20 +76,18 @@ fn handle(configuration: &Configuration,
         .iter()
         .find(|route| request.method == route.method && request.path == route.path);
     info!(logger, "request"; "request" => &input);
-    match route {
+    let output = match route {
         Some(route) => {
             let mut stream = UnixStream::connect(&route.process)?;
             stream.write_fmt(format_args!("{}\n", &input))?;
             let mut output = String::new();
             stream.read_to_string(&mut output)?;
-            info!(logger, "response"; "response" => &output);
-            Ok(output)
+            output
         }
-        None => {
-            info!(logger, "response"; "response" => &NOT_FOUND);
-            Ok(NOT_FOUND.to_string())
-        }
-    }
+        None => NOT_FOUND.to_string(),
+    };
+    info!(logger, "response"; "response" => &output);
+    Ok(output)
 }
 
 fn read_configuration() -> io::Result<Configuration> {
