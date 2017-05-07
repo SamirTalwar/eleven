@@ -40,6 +40,7 @@ function app_is_alive {
 }
 
 function prefix {
+  sed "s/^/$1/"
   while IFS=$'\n' read line; do
     echo -n $1
     echo $line
@@ -78,8 +79,10 @@ for dir in ${tests[@]}; do
   else
     echo '  failed'
     echo "  exit status: ${exit_status}"
-    echo "  standard output:\n$(prefix '    ' < $out_diff_file)"
-    echo "  standard error:\n$(prefix '    ' < $err_diff_file)"
+    echo '  standard output:'
+    cat $out_diff_file | prefix '    '
+    echo '  standard error:'
+    cat $err_diff_file | prefix '    '
     success=false
   fi
 done
