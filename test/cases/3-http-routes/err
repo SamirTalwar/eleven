@@ -1,8 +1,8 @@
-Request: {"method":"GET","path":"/"}
-Response: {"status":200,"body":"Hello, world!"}
-Request: {"method":"GET","path":"/health"}
-Response: {"status":200,"body":"Everything is awesome."}
-Request: {"method":"GET","path":"/not-found"}
-Response: {"status":404,"body":""}
+{"msg":"request","level":"INFO","service":"router","request":"{\"method\":\"GET\",\"path\":\"/\"}\n"}
+{"msg":"response","level":"INFO","service":"router","response":"{\"status\":200,\"body\":\"Hello, world!\"}\n"}
+{"msg":"request","level":"INFO","service":"router","request":"{\"method\":\"GET\",\"path\":\"/health\"}\n"}
+{"msg":"response","level":"INFO","service":"router","response":"{\"status\":200,\"body\":\"Everything is awesome.\"}\n"}
+{"msg":"request","level":"INFO","service":"router","request":"{\"method\":\"GET\",\"path\":\"/not-found\"}\n"}
+{"msg":"response","level":"INFO","service":"router","response":"{\"status\":404,\"body\":\"\"}\n"}
 Stopping...
 Stopped.

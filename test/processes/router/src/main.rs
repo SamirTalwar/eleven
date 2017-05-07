@@ -2,8 +2,12 @@ extern crate serde;
 extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
+#[macro_use]
+extern crate slog;
+extern crate slog_json;
 extern crate unix_socket;
 
+use slog::Drain;
 use std::env;
 use std::fmt;
 use std::fs::File;
@@ -11,70 +15,68 @@ use std::io::prelude::*;
 use std::io;
 use std::io::Write;
 use std::path::Path;
+use std::sync::Mutex;
 use unix_socket::{UnixListener, UnixStream};
-
-macro_rules! print_err {
-    ($($arg:tt)*) => (
-        match write!(&mut ::std::io::stderr(), $($arg)* ).and_then(|_| io::stderr().flush()) {
-            Ok(_) => {},
-            Err(x) => panic!("Unable to write to stderr (file handle closed?): {}", x),
-        }
-    )
-}
-
-macro_rules! println_err {
-    ($($arg:tt)*) => (
-        match writeln!(&mut ::std::io::stderr(), $($arg)* ) {
-            Ok(_) => {},
-            Err(x) => panic!("Unable to write to stderr (file handle closed?): {}", x),
-        }
-    )
-}
 
 const NOT_FOUND: &'static str = "{\"status\":404,\"body\":\"\"}\n";
 
 
 fn main() {
     let configuration = read_configuration().unwrap();
+    let json = slog_json::Json::new(std::io::stderr())
+        .add_key_value(o!(
+                "level" => slog::FnValue(move |record: &slog::Record| {
+                    record.level().as_short_str()
+                }),
+                "msg" => slog::PushFnValue(move |record: &slog::Record, serializer| {
+                    serializer.emit(record.msg())
+                }),
+                ))
+        .build();
+    let drain = Mutex::new(json).map(slog::Fuse);
+    let logger = slog::Logger::root(drain, o!("service" => "router"));
 
     let listener = UnixListener::bind(&Path::new(&env::args().nth(1).unwrap())).unwrap();
     for c in listener.incoming() {
         let mut connection = c.unwrap();
         let mut input = String::new();
         connection.read_to_string(&mut input).unwrap();
-        match handle(&configuration, input) {
+        match handle(&configuration, &logger, &input) {
             Ok(response) => {
                 connection
-                    .write_fmt(format_args!("{}", response))
+                    .write_fmt(format_args!("{}", &response))
                     .unwrap();
             }
             Err(error) => {
-                println_err!("{}", error);
-                connection.write_fmt(format_args!("{{}}")).unwrap();
+                error!(logger, "Connection error: {}", &error);
+                connection.write("{}".as_bytes()).unwrap();
             }
         }
     }
 }
 
-fn handle(configuration: &Configuration, input: String) -> io::Result<String> {
+fn handle(configuration: &Configuration,
+          logger: &slog::Logger,
+          input: &String)
+          -> io::Result<String> {
     let request: HttpRequest = serde_json::from_str(&input)
         .map_err(|error| io::Error::new(io::ErrorKind::Other, error))?;
     let route = configuration
         .routes
         .iter()
         .find(|route| request.method == route.method && request.path == route.path);
-    print_err!("Request: {}", &input);
+    info!(logger, "request"; "request" => &input);
     match route {
         Some(route) => {
             let mut stream = UnixStream::connect(&route.process)?;
-            stream.write_fmt(format_args!("{}\n", input))?;
+            stream.write_fmt(format_args!("{}\n", &input))?;
             let mut output = String::new();
             stream.read_to_string(&mut output)?;
-            print_err!("Response: {}", &output);
+            info!(logger, "response"; "response" => &output);
             Ok(output)
         }
         None => {
-            print_err!("Response: {}", &NOT_FOUND);
+            info!(logger, "response"; "response" => &NOT_FOUND);
             Ok(NOT_FOUND.to_string())
         }
     }
