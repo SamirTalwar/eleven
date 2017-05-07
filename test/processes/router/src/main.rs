@@ -67,21 +67,13 @@ fn run(logger: &slog::Logger) -> io::Result<()> {
 }
 
 fn handle(routes: &Vec<Route>, logger: &slog::Logger, input: &String) -> io::Result<String> {
-    let request: HttpRequest = parse_json(&input)?;
-    let route = routes
-        .iter()
-        .find(|route| request.method == route.method && request.path == route.path);
     info!(logger, "request"; "request" => &input);
+    let request: HttpRequest = parse_json(&input)?;
+    let route = routes.iter().find(|route| route.matches(&request));
     let output = match route {
-        Some(route) => {
-            let mut stream = UnixStream::connect(&route.process)?;
-            stream.write_fmt(format_args!("{}\n", &input))?;
-            let mut output = String::new();
-            stream.read_to_string(&mut output)?;
-            output
-        }
-        None => NOT_FOUND.to_string(),
-    };
+        Some(route) => route.handle(&input),
+        None => Ok(NOT_FOUND.to_string()),
+    }?;
     info!(logger, "response"; "response" => &output);
     Ok(output)
 }
@@ -114,6 +106,20 @@ struct Route {
     method: HttpMethod,
     path: String,
     process: String,
+}
+
+impl Route {
+    fn matches(&self, request: &HttpRequest) -> bool {
+        self.method == request.method && self.path == request.path
+    }
+
+    fn handle(&self, input: &String) -> io::Result<String> {
+        let mut stream = UnixStream::connect(&self.process)?;
+        stream.write_fmt(format_args!("{}\n", &input))?;
+        let mut output = String::new();
+        stream.read_to_string(&mut output)?;
+        Ok(output)
+    }
 }
 
 #[derive(Serialize, Deserialize)]
