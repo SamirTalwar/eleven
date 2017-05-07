@@ -45,8 +45,14 @@ function prefix {
 
 trap tear_down EXIT
 
+if [[ $# -gt 0 ]]; then
+  tests=$@
+else
+  tests=(test/cases/*)
+fi
+
 success=true
-for dir in test/cases/*; do
+for dir in ${tests[@]}; do
   echo
   echo $dir
   rm -f "${dir}/out.actual" "${dir}/err.actual"
