@@ -53,7 +53,7 @@ fn run(logger: &slog::Logger) -> io::Result<()> {
         let mut connection = c?;
         let mut input = String::new();
         connection.read_to_string(&mut input)?;
-        match handle(&configuration, &logger, &input) {
+        match handle(&configuration.routes, &logger, &input) {
             Ok(response) => {
                 connection.write_fmt(format_args!("{}", &response))?;
             }
@@ -66,13 +66,9 @@ fn run(logger: &slog::Logger) -> io::Result<()> {
     Ok(())
 }
 
-fn handle(configuration: &Configuration,
-          logger: &slog::Logger,
-          input: &String)
-          -> io::Result<String> {
+fn handle(routes: &Vec<Route>, logger: &slog::Logger, input: &String) -> io::Result<String> {
     let request: HttpRequest = parse_json(&input)?;
-    let route = configuration
-        .routes
+    let route = routes
         .iter()
         .find(|route| request.method == route.method && request.path == route.path);
     info!(logger, "request"; "request" => &input);
