@@ -22,7 +22,6 @@ const NOT_FOUND: &'static str = "{\"status\":404,\"body\":\"\"}\n";
 
 
 fn main() {
-    let configuration = read_configuration().unwrap();
     let json = slog_json::Json::new(std::io::stderr())
         .add_key_value(o!(
                 "level" => slog::FnValue(move |record: &slog::Record| {
@@ -36,23 +35,35 @@ fn main() {
     let drain = Mutex::new(json).map(slog::Fuse);
     let logger = slog::Logger::root(drain, o!("service" => "router"));
 
-    let listener = UnixListener::bind(&Path::new(&env::args().nth(1).unwrap())).unwrap();
+    match run(&logger) {
+        Ok(_) => {}
+        Err(error) => error!(logger, "Error: {}", error),
+    }
+}
+
+fn run(logger: &slog::Logger) -> io::Result<()> {
+    let incoming_socket = &env::args()
+                               .nth(1)
+                               .ok_or(io::Error::new(io::ErrorKind::Other,
+                                                     "No argument provided.".to_string()))?;
+    let configuration = read_configuration()?;
+
+    let listener = UnixListener::bind(&Path::new(incoming_socket))?;
     for c in listener.incoming() {
-        let mut connection = c.unwrap();
+        let mut connection = c?;
         let mut input = String::new();
-        connection.read_to_string(&mut input).unwrap();
+        connection.read_to_string(&mut input)?;
         match handle(&configuration, &logger, &input) {
             Ok(response) => {
-                connection
-                    .write_fmt(format_args!("{}", &response))
-                    .unwrap();
+                connection.write_fmt(format_args!("{}", &response))?;
             }
             Err(error) => {
                 error!(logger, "Connection error: {}", &error);
-                connection.write("{}".as_bytes()).unwrap();
+                connection.write("{}".as_bytes())?;
             }
         }
     }
+    Ok(())
 }
 
 fn handle(configuration: &Configuration,
@@ -82,7 +93,7 @@ fn handle(configuration: &Configuration,
     }
 }
 
-fn read_configuration() -> Result<Configuration, serde_json::Error> {
+fn read_configuration() -> io::Result<Configuration> {
     let arg =
         env::args()
             .nth(2)
@@ -91,7 +102,7 @@ fn read_configuration() -> Result<Configuration, serde_json::Error> {
     let mut file = File::open(file_path)?;
     let mut string = String::new();
     file.read_to_string(&mut string)?;
-    serde_json::from_str(&string)
+    serde_json::from_str(&string).map_err(|error| io::Error::new(io::ErrorKind::Other, error))
 }
 
 #[derive(Serialize, Deserialize)]
