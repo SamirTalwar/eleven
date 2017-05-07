@@ -70,8 +70,7 @@ fn handle(configuration: &Configuration,
           logger: &slog::Logger,
           input: &String)
           -> io::Result<String> {
-    let request: HttpRequest = serde_json::from_str(&input)
-        .map_err(|error| io::Error::new(io::ErrorKind::Other, error))?;
+    let request: HttpRequest = parse_json(&input)?;
     let route = configuration
         .routes
         .iter()
@@ -102,7 +101,13 @@ fn read_configuration() -> io::Result<Configuration> {
     let mut file = File::open(file_path)?;
     let mut string = String::new();
     file.read_to_string(&mut string)?;
-    serde_json::from_str(&string).map_err(|error| io::Error::new(io::ErrorKind::Other, error))
+    parse_json(&string)
+}
+
+fn parse_json<T>(input: &String) -> io::Result<T>
+    where T: serde::Deserialize
+{
+    serde_json::from_str(&input).map_err(|error| io::Error::new(io::ErrorKind::Other, error))
 }
 
 #[derive(Serialize, Deserialize)]
