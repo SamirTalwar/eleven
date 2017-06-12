@@ -2,7 +2,6 @@
 
 require 'fileutils'
 require 'json'
-require 'open3'
 require 'optparse'
 require 'pathname'
 require 'socket'
@@ -86,13 +85,14 @@ class App
         JSON.dump(process.config, f)
       end
       Thread.new do
-        command = process.directory / 'run'
-        Open3.popen2(command.to_s, sockets[process.name], config_file.to_s) do
-          |stdin, stdout, wait_thr|
-          started << {name: process.name, pid: wait_thr.pid}
-          stdin.close
-          stdout.close
-          wait_thr.wait
+        begin
+          command = process.directory + 'run'
+          pid = Process.spawn(command.to_s, sockets[process.name], config_file.to_s,
+                              :in => :close, :out => :out, :err => :err)
+          started << {name: process.name, pid: pid}
+          Process.wait(pid)
+        rescue StandardError => error
+          info "Error spawning #{process.name}. #{error.class}: #{error.message}"
         end
       end
     end
