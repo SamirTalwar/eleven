@@ -50,12 +50,18 @@ class App
     started = start processes, sockets
 
     begin
-      started.each do |process|
-        begin
-          Process.wait(process[:pid])
-        rescue Errno::ECHILD
-          info "Process \"#{process[:name]}\" has died."
-        end
+      running = started
+      until running.empty?
+        running.reject! { |process|
+          begin
+            Process.kill 0, process[:pid]
+            false
+          rescue Errno::ESRCH
+            info "Process \"#{process[:name]}\" has died."
+            true
+          end
+        }
+        sleep 1
       end
     rescue Interrupt
     ensure
@@ -102,19 +108,21 @@ class App
       config_file.open('w') do |f|
         JSON.dump(process.config, f)
       end
-      Thread.new do
-        begin
-          run_command = process.directory + 'run'
-          pid = Process.spawn(run_command.to_s, sockets[process.name], config_file.to_s,
-                              :in => :close, :out => :out, :err => :err,
-                              :chdir => process.directory)
-          started << {name: process.name, pid: pid}
+
+      begin
+        run_command = process.directory + 'run'
+        pid = Process.spawn(run_command.to_s, sockets[process.name], config_file.to_s,
+                            :in => :close, :out => :out, :err => :err,
+                            :chdir => process.directory)
+        started << {name: process.name, pid: pid}
+        Thread.new do
           Process.wait(pid)
-        rescue StandardError => error
-          info "Error spawning #{process.name}. #{error.class}: #{error.message}"
         end
+      rescue StandardError => error
+        info "Error spawning #{process.name}. #{error.class}: #{error.message}"
       end
     end
+
     started
   end
 
