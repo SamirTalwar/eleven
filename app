@@ -12,6 +12,8 @@ require 'yaml'
 
 DEBUG = ENV.include?('DEBUG')
 
+ElevenProcess = Struct.new(:name, :command, :config)
+
 class App
   def initialize(app_file:, detach:, pid_file:)
     @app_file = app_file
@@ -71,25 +73,26 @@ class App
     processes = configuration['processes'].map { |name, process|
       command = process['command']
       config = reference_sockets(process['config'], sockets)
-      [name, command, config]
+      ElevenProcess.new(name, command, config)
     }
     [processes, sockets]
   end
 
   def start(processes, sockets)
     started = []
-    processes.each do |name, command, config|
-      config_file = @config_dir + "#{name}.config"
+    processes.each do |process|
+      config_file = @config_dir + "#{process.name}.config"
       config_file.open('w') do |f|
-        JSON.dump(config, f)
+        JSON.dump(process.config, f)
       end
       Thread.new do
-        Open3.popen2(command, sockets[name], config_file.to_s) { |stdin, stdout, wait_thr|
-          started << {name: name, pid: wait_thr.pid}
+        Open3.popen2(process.command, sockets[process.name], config_file.to_s) do
+          |stdin, stdout, wait_thr|
+          started << {name: process.name, pid: wait_thr.pid}
           stdin.close
           stdout.close
           wait_thr.wait
-        }
+        end
       end
     end
     started
