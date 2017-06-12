@@ -15,10 +15,8 @@ err_diff_file=$(mktemp)
 command -v git > /dev/null && diff=(git diff --no-index --color) || diff=(diff)
 
 function set_up {
-  sleep 1
   ./app --detach --pid-file=$pid_file $1 || return $?
   pid=$(<$pid_file)
-  sleep 1
 }
 
 function tear_down {

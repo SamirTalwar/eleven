@@ -34,6 +34,8 @@ class App
     debug "Processes: #{JSON.pretty_generate(processes)}"
     debug
 
+    prepare processes
+
     if @detach
       @forked = fork
       if @forked
@@ -77,6 +79,22 @@ class App
     [processes, sockets]
   end
 
+  def prepare(processes)
+    processes.each do |process|
+      prepare_command = process.directory + 'prepare'
+      next unless prepare_command.exist?
+
+      pid = Process.spawn(prepare_command.to_s,
+                          :in => :close, :out => :out, :err => :err,
+                          :chdir => process.directory)
+      Process.wait pid
+      status = $?
+      unless status.success?
+        raise StandardError, "Process failed with an exit code of #{status.exitstatus}."
+      end
+    end
+  end
+
   def start(processes, sockets)
     started = []
     processes.each do |process|
@@ -86,8 +104,8 @@ class App
       end
       Thread.new do
         begin
-          command = process.directory + 'run'
-          pid = Process.spawn(command.to_s, sockets[process.name], config_file.to_s,
+          run_command = process.directory + 'run'
+          pid = Process.spawn(run_command.to_s, sockets[process.name], config_file.to_s,
                               :in => :close, :out => :out, :err => :err,
                               :chdir => process.directory)
           started << {name: process.name, pid: pid}

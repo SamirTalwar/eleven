@@ -1,6 +1,3 @@
 #!/usr/bin/env zsh
 
-set -eu
-
-go build -o app
 exec ./app $@
