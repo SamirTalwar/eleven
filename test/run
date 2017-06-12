@@ -44,31 +44,36 @@ function app_is_alive {
 }
 
 function run_test {
-  local dir exit_status test_passed
+  local dir test_passed exit_status out_file err_file
   dir=$1
   test_passed=true
+  out_file="${dir}/out.actual"
+  err_file="${dir}/err.actual"
 
   echo $dir
-  rm -f "${dir}/out.actual" "${dir}/err.actual"
+  rm -f $out_file $err_file
 
   exit_status=0
-  set_up $(<"${dir}/config-path") 2> "${dir}/err.actual" || exit_status=$?
+  set_up $(<"${dir}/config-path") > $out_file 2> $err_file || exit_status=$?
   if [[ $exit_status -ne 0 ]]; then
     echo '  failed to start'
+    echo "  exit status: ${exit_status}"
+    echo '  standard output:'
+    cat $out_file | prefix '    '
     echo '  standard error:'
-    cat "${dir}/err.actual" | prefix '    '
+    cat $err_file | prefix '    '
     return 2
   fi
 
   exit_status=0
-  "./${dir}/test" > "${dir}/out.actual" 2> "${dir}/err.actual" || exit_status=$?
+  "./${dir}/test" > $out_file 2> $err_file || exit_status=$?
   exit_status=$?
 
   tear_down
 
   [[ $exit_status -eq 0 ]] || test_passed=false
-  ${diff[@]} "${dir}/out" "${dir}/out.actual" > $out_diff_file || test_passed=false
-  ${diff[@]} "${dir}/err" "${dir}/err.actual" > $err_diff_file || test_passed=false
+  ${diff[@]} "${dir}/out" $out_file > $out_diff_file || test_passed=false
+  ${diff[@]} "${dir}/err" $err_file > $err_diff_file || test_passed=false
 
   if $test_passed; then
     echo '  succeeded'
