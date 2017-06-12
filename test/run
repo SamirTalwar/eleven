@@ -16,7 +16,7 @@ command -v git > /dev/null && diff=(git diff --no-index --color) || diff=(diff)
 
 function set_up {
   sleep 1
-  ./app --detach --pid-file=$pid_file $1
+  ./app --detach --pid-file=$pid_file $1 || return $?
   pid=$(<$pid_file)
   sleep 1
 }
@@ -35,38 +35,36 @@ function tear_down {
   fi
 }
 
+function shut_down {
+  local exit_status=$?
+  tear_down
+  exit $exit_status
+}
+
 function app_is_alive {
   [[ -n $pid ]] && kill -0 $pid >& /dev/null
 }
 
-function prefix {
-  sed "s/^/$1/"
-  while IFS=$'\n' read line; do
-    echo -n $1
-    echo $line
-  done
-}
-
-trap tear_down EXIT
-
-if [[ $# -gt 0 ]]; then
-  tests=$@
-else
-  tests=(test/cases/*)
-fi
-
-success=true
-for dir in ${tests[@]}; do
+function run_test {
+  local dir exit_status test_passed
+  dir=$1
   test_passed=true
-  echo
+
   echo $dir
   rm -f "${dir}/out.actual" "${dir}/err.actual"
-  set_up $(<"${dir}/config-path") 2> "${dir}/err.actual"
 
-  set +e
-  "./${dir}/test" > "${dir}/out.actual"
+  exit_status=0
+  set_up $(<"${dir}/config-path") 2> "${dir}/err.actual" || exit_status=$?
+  if [[ $exit_status -ne 0 ]]; then
+    echo '  failed to start'
+    echo '  standard error:'
+    cat "${dir}/err.actual" | prefix '    '
+    return 2
+  fi
+
+  exit_status=0
+  "./${dir}/test" > "${dir}/out.actual" 2> "${dir}/err.actual" || exit_status=$?
   exit_status=$?
-  set -e
 
   tear_down
 
@@ -83,8 +81,32 @@ for dir in ${tests[@]}; do
     cat $out_diff_file | prefix '    '
     echo '  standard error:'
     cat $err_diff_file | prefix '    '
-    success=false
+    return 1
   fi
+
+  return 0
+}
+
+function prefix {
+  sed "s/^/$1/"
+  while IFS=$'\n' read line; do
+    echo -n $1
+    echo $line
+  done
+}
+
+trap shut_down INT TERM EXIT
+
+if [[ $# -gt 0 ]]; then
+  tests=$@
+else
+  tests=(test/cases/*)
+fi
+
+success=true
+for dir in ${tests[@]}; do
+  echo
+  run_test $dir || success=false
 done
 
 $success
