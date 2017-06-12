@@ -12,7 +12,7 @@ require 'yaml'
 
 DEBUG = ENV.include?('DEBUG')
 
-ElevenProcess = Struct.new(:name, :command, :config)
+ElevenProcess = Struct.new(:name, :directory, :config)
 
 class App
   def initialize(app_file:, detach:, pid_file:)
@@ -71,9 +71,9 @@ class App
       sockets[name] = (@socket_dir + "#{name}.sock").to_s
     }
     processes = configuration['processes'].map { |name, process|
-      command = process['command']
       config = reference_sockets(process['config'], sockets)
-      ElevenProcess.new(name, command, config)
+      directory = @app_file.dirname + process['directory']
+      ElevenProcess.new(name, directory, config)
     }
     [processes, sockets]
   end
@@ -86,7 +86,8 @@ class App
         JSON.dump(process.config, f)
       end
       Thread.new do
-        Open3.popen2(process.command, sockets[process.name], config_file.to_s) do
+        command = process.directory / 'run'
+        Open3.popen2(command.to_s, sockets[process.name], config_file.to_s) do
           |stdin, stdout, wait_thr|
           started << {name: process.name, pid: wait_thr.pid}
           stdin.close
@@ -185,11 +186,12 @@ if __FILE__ == $0
     exit 2
   end
 
-  options[:app_file] = Pathname.new(ARGV[0])
-  unless options[:app_file].exist?
-    info "\"#{options[:app_file]}\" does not exist."
+  app_file = Pathname.new(ARGV[0])
+  unless app_file.exist?
+    info "\"#{app_file}\" does not exist."
     exit 1
   end
+  options[:app_file] = app_file.expand_path
 
   App.new(options).run!
 end

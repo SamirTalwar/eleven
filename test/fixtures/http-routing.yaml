@@ -1,12 +1,12 @@
 processes:
   http:
-    command: ./test/processes/http/run
+    directory: ../processes/http
     config:
       port: 8080
       process: router
 
   router:
-    command: ./test/processes/router/run
+    directory: ../processes/router
     config:
       routes:
         - method: get
@@ -17,14 +17,14 @@ processes:
           process: health-check
 
   hello-world:
-    command: ./test/processes/constant/run
+    directory: ../processes/constant
     config:
       json:
         status: 200
         body: Hello, world!
 
   health-check:
-    command: ./test/processes/constant/run
+    directory: ../processes/constant
     config:
       json:
         status: 200
