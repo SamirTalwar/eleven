@@ -88,7 +88,8 @@ class App
         begin
           command = process.directory + 'run'
           pid = Process.spawn(command.to_s, sockets[process.name], config_file.to_s,
-                              :in => :close, :out => :out, :err => :err)
+                              :in => :close, :out => :out, :err => :err,
+                              :chdir => process.directory)
           started << {name: process.name, pid: pid}
           Process.wait(pid)
         rescue StandardError => error
