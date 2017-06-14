@@ -11,7 +11,13 @@ require 'yaml'
 
 DEBUG = ENV.include?('DEBUG')
 
-ElevenProcess = Struct.new(:name, :directory, :config)
+ElevenProcess = Struct.new(:name, :directory, :config) do
+  def initialize(name:, directory:, config:)
+    self.name = name
+    self.directory = directory
+    self.config = config
+  end
+end
 
 class App
   def initialize(app_file:, detach:, pid_file:)
@@ -78,9 +84,11 @@ class App
       sockets[name] = (@socket_dir + "#{name}.sock").to_s
     }
     processes = configuration['processes'].map { |name, process|
-      config = reference_sockets(process['config'], sockets)
-      directory = @app_file.dirname + process['directory']
-      ElevenProcess.new(name, directory, config)
+      ElevenProcess.new(
+        name: name,
+        directory: @app_file.dirname + process['directory'],
+        config: reference_sockets(process['config'], sockets),
+      )
     }
     [processes, sockets]
   end
