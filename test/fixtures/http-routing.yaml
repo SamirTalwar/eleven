@@ -7,6 +7,12 @@ processes:
 
   router:
     directory: ../processes/router
+    prepare:
+      - cargo
+      - build
+      - --quiet
+    run:
+      - ./target/debug/router
     config:
       routes:
         - method: get

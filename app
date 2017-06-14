@@ -11,10 +11,12 @@ require 'yaml'
 
 DEBUG = ENV.include?('DEBUG')
 
-ElevenProcess = Struct.new(:name, :directory, :config) do
-  def initialize(name:, directory:, config:)
+ElevenProcess = Struct.new(:name, :directory, :prepare_command, :run_command, :config) do
+  def initialize(name:, directory:, prepare_command:, run_command:, config:)
     self.name = name
     self.directory = directory
+    self.prepare_command = prepare_command
+    self.run_command = run_command
     self.config = config
   end
 end
@@ -84,9 +86,12 @@ class App
       sockets[name] = (@socket_dir + "#{name}.sock").to_s
     }
     processes = configuration['processes'].map { |name, process|
+      directory = @app_file.dirname + process['directory']
       ElevenProcess.new(
         name: name,
-        directory: @app_file.dirname + process['directory'],
+        directory: directory,
+        prepare_command: process['prepare'] || ((directory + 'prepare').exist? ? ['./prepare'] : []),
+        run_command: process['run'] || ['./run'],
         config: reference_sockets(process['config'], sockets),
       )
     }
@@ -95,10 +100,9 @@ class App
 
   def prepare(processes)
     processes.each do |process|
-      prepare_command = process.directory + 'prepare'
-      next unless prepare_command.exist?
+      next if process.prepare_command.empty?
 
-      pid = Process.spawn(prepare_command.to_s,
+      pid = Process.spawn(*process.prepare_command,
                           :in => :close, :out => :out, :err => :err,
                           :chdir => process.directory)
       Process.wait pid
@@ -118,8 +122,7 @@ class App
       end
 
       begin
-        run_command = process.directory + 'run'
-        pid = Process.spawn(run_command.to_s, sockets[process.name], config_file.to_s,
+        pid = Process.spawn(*process.run_command, sockets[process.name], config_file.to_s,
                             :in => :close, :out => :out, :err => :err,
                             :chdir => process.directory)
         started << {name: process.name, pid: pid}
