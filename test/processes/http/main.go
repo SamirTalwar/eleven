@@ -50,13 +50,17 @@ func main() {
 
 		err = json.NewDecoder(socket).Decode(&responseStruct)
 		if err != nil {
-			panic(err)
-		}
-
-		response.WriteHeader(responseStruct.Status)
-		_, err = bufferedResponse.WriteString(responseStruct.Body)
-		if err != nil {
-			panic(err)
+			response.WriteHeader(500)
+			_, err = bufferedResponse.WriteString(err.Error())
+			if err != nil {
+				panic(err)
+			}
+		} else {
+			response.WriteHeader(responseStruct.Status)
+			_, err = bufferedResponse.WriteString(responseStruct.Body)
+			if err != nil {
+				panic(err)
+			}
 		}
 		bufferedResponse.Flush()
 	})
