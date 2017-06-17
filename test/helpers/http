@@ -1,0 +1,7 @@
+#!/usr/bin/env zsh
+
+set -eu
+set -o pipefail
+
+http --timeout=5 --print='hb' $@ | dos2unix | grep -Ev '^Date: '
+echo

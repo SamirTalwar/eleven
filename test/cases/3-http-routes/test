@@ -4,9 +4,6 @@ set -e
 set -u
 set -o pipefail
 
-http --timeout=5 --check-status --print='hb' GET :8080 | dos2unix | grep -Ev '^Date: '
-echo
-http --timeout=5 --check-status --print='hb' GET :8080/health | dos2unix | grep -Ev '^Date: '
-echo
-http --timeout=5 --print='hb' GET :8080/not-found | dos2unix | grep -Ev '^Date: '
-echo
+./test/helpers/http --check-status GET :8080
+./test/helpers/http --check-status GET :8080/health
+./test/helpers/http GET :8080/not-found
