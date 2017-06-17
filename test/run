@@ -66,7 +66,7 @@ function run_test {
   fi
 
   exit_status=0
-  "./${dir}/test" > $out_file 2> $err_file || exit_status=$?
+  "./${dir}/test" >> $out_file 2>> $err_file || exit_status=$?
   exit_status=$?
 
   tear_down
