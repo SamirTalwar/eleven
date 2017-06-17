@@ -4,6 +4,7 @@ require 'fileutils'
 require 'json'
 require 'optparse'
 require 'pathname'
+require 'pp'
 require 'socket'
 require 'timeout'
 require 'tmpdir'
@@ -39,7 +40,7 @@ class App
     debug "Directory: #{@dir}"
 
     processes, sockets = configure()
-    debug "Processes: #{JSON.pretty_generate(processes)}"
+    debug "Processes: #{processes.pretty_inspect}"
     debug
 
     prepare processes
