@@ -12,12 +12,13 @@ require 'yaml'
 
 DEBUG = ENV.include?('DEBUG')
 
-ElevenProcess = Struct.new(:name, :directory, :prepare_command, :run_command, :config) do
-  def initialize(name:, directory:, prepare_command:, run_command:, config:)
+ElevenProcess = Struct.new(:name, :directory, :prepare_command, :run_command, :socket, :config) do
+  def initialize(name:, directory:, prepare_command:, run_command:, socket:, config:)
     self.name = name
     self.directory = directory
     self.prepare_command = prepare_command
     self.run_command = run_command
+    self.socket = socket
     self.config = config
   end
 end
@@ -39,7 +40,7 @@ class App
     debug "Application: #{@app_file}"
     debug "Directory: #{@dir}"
 
-    processes, sockets = configure()
+    processes = configure()
     debug "Processes: #{processes.pretty_inspect}"
     debug
 
@@ -56,7 +57,7 @@ class App
     end
 
     @running = true
-    started = start processes, sockets
+    started = start processes
 
     begin
       running = started
@@ -93,10 +94,11 @@ class App
         directory: directory,
         prepare_command: process['prepare'] || ((directory + 'prepare').exist? ? ['./prepare'] : []),
         run_command: process['run'] || ['./run'],
+        socket: sockets[name],
         config: reference_sockets(process['config'], sockets),
       )
     }
-    [processes, sockets]
+    processes
   end
 
   def prepare(processes)
@@ -114,7 +116,7 @@ class App
     end
   end
 
-  def start(processes, sockets)
+  def start(processes)
     started = []
     processes.each do |process|
       config_file = @config_dir + "#{process.name}.config"
@@ -123,8 +125,8 @@ class App
       end
 
       begin
-        pid = Process.spawn(*process.run_command, sockets[process.name], config_file.to_s,
-                            :in => :close, :out => :out, :err => :err,
+        pid = Process.spawn(*process.run_command, process.socket, config_file.to_s,
+                            :in => :in, :out => :out, :err => :err,
                             :chdir => process.directory)
         started << {name: process.name, pid: pid}
         Thread.new do

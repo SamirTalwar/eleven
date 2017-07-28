@@ -5,18 +5,18 @@ extern crate serde_derive;
 #[macro_use]
 extern crate slog;
 extern crate slog_json;
-extern crate unix_socket;
 
 use slog::Drain;
 use std::env;
 use std::fmt;
 use std::fs::File;
+use std::io::Write;
 use std::io::prelude::*;
 use std::io;
-use std::io::Write;
+use std::net::Shutdown;
+use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::Path;
 use std::sync::Mutex;
-use unix_socket::{UnixListener, UnixStream};
 
 const NOT_FOUND: &'static str = "{\"status\":404,\"body\":\"\"}\n";
 
@@ -59,7 +59,7 @@ fn run(logger: &slog::Logger) -> io::Result<()> {
             }
             Err(error) => {
                 error!(logger, "Connection error: {}", &error);
-                connection.write("{}".as_bytes())?;
+                connection.write(b"{}")?;
             }
         }
     }
@@ -68,10 +68,10 @@ fn run(logger: &slog::Logger) -> io::Result<()> {
 
 fn handle(routes: &Vec<Route>, logger: &slog::Logger, input: &String) -> io::Result<String> {
     info!(logger, "request"; "request" => &input);
-    let request: HttpRequest = parse_json(&input)?;
+    let request: HttpRequest = parse_json(&input.trim().to_string())?;
     let route = routes.iter().find(|route| route.matches(&request));
     let output = match route {
-        Some(route) => route.handle(&input),
+        Some(route) => route.handle(&request),
         None => Ok(NOT_FOUND.to_string()),
     }?;
     info!(logger, "response"; "response" => &output);
@@ -93,7 +93,18 @@ fn read_configuration() -> io::Result<Configuration> {
 fn parse_json<T>(input: &String) -> io::Result<T>
     where T: serde::Deserialize
 {
-    serde_json::from_str(&input).map_err(|error| io::Error::new(io::ErrorKind::Other, error))
+    as_io_error(serde_json::from_str(&input))
+}
+
+fn write_json<W, T: ?Sized>(writer: &mut W, value: &T) -> io::Result<()>
+    where W: Write,
+          T: serde::Serialize
+{
+    as_io_error(serde_json::to_writer(writer, value))
+}
+
+fn as_io_error<T>(result: serde_json::Result<T>) -> io::Result<T> {
+    result.map_err(|error| io::Error::new(io::ErrorKind::Other, error))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -113,22 +124,25 @@ impl Route {
         self.method == request.method && self.path == request.path
     }
 
-    fn handle(&self, input: &String) -> io::Result<String> {
+    fn handle(&self, request: &HttpRequest) -> io::Result<String> {
         let mut stream = UnixStream::connect(&self.process)?;
-        stream.write_fmt(format_args!("{}\n", &input))?;
+        write_json(&mut stream, &request)?;
+        stream.shutdown(Shutdown::Write)?;
+
         let mut output = String::new();
         stream.read_to_string(&mut output)?;
         Ok(output)
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct HttpRequest {
     method: HttpMethod,
     path: String,
+    body: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct HttpResponse {
     status: u16,
     body: String,

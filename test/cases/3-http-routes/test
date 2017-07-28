@@ -6,4 +6,5 @@ set -o pipefail
 
 ./test/helpers/http --check-status GET :8080
 ./test/helpers/http --check-status GET :8080/health
+./test/helpers/http --check-status POST :8080/echo <<< 'Is anybody out there?'
 ./test/helpers/http GET :8080/not-found

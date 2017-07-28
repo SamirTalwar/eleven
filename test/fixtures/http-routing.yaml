@@ -21,6 +21,9 @@ processes:
         - method: get
           path: /health
           process: health-check
+        - method: post
+          path: /echo
+          process: echo
 
   hello-world:
     directory: ../processes/constant
@@ -35,3 +38,6 @@ processes:
       json:
         status: 200
         body: Everything is awesome.
+
+  echo:
+    directory: ../processes/echo

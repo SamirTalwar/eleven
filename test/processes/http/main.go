@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -17,6 +18,7 @@ type Configuration struct {
 type HttpRequest struct {
 	Method string `json:"method"`
 	Path   string `json:"path"`
+	Body   string `json:"body"`
 }
 
 type HttpResponse struct {
@@ -28,7 +30,14 @@ func main() {
 	configuration := readConfiguration(os.Args[2])
 
 	http.HandleFunc("/", func(response http.ResponseWriter, request *http.Request) {
-		requestStruct := HttpRequest{Method: request.Method, Path: request.URL.Path}
+		requestBody := new(bytes.Buffer)
+		requestBody.ReadFrom(request.Body)
+		requestStruct := HttpRequest{
+			Method: request.Method,
+			Path:   request.URL.Path,
+			Body:   requestBody.String(),
+		}
+
 		var responseStruct HttpResponse
 		bufferedResponse := bufio.NewWriter(response)
 

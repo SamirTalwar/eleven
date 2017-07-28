@@ -1,0 +1,3 @@
+#!/usr/bin/env zsh
+
+exec socat UNIX-LISTEN:$1,fork EXEC:"$(dirname $0)/process"

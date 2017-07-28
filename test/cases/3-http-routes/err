@@ -1,8 +1,10 @@
-{"msg":"request","level":"INFO","service":"router","request":"{\"method\":\"GET\",\"path\":\"/\"}\n"}
+{"msg":"request","level":"INFO","service":"router","request":"{\"method\":\"GET\",\"path\":\"/\",\"body\":\"\"}\n"}
 {"msg":"response","level":"INFO","service":"router","response":"{\"status\":200,\"body\":\"Hello, world!\"}\n"}
-{"msg":"request","level":"INFO","service":"router","request":"{\"method\":\"GET\",\"path\":\"/health\"}\n"}
+{"msg":"request","level":"INFO","service":"router","request":"{\"method\":\"GET\",\"path\":\"/health\",\"body\":\"\"}\n"}
 {"msg":"response","level":"INFO","service":"router","response":"{\"status\":200,\"body\":\"Everything is awesome.\"}\n"}
-{"msg":"request","level":"INFO","service":"router","request":"{\"method\":\"GET\",\"path\":\"/not-found\"}\n"}
+{"msg":"request","level":"INFO","service":"router","request":"{\"method\":\"POST\",\"path\":\"/echo\",\"body\":\"Is anybody out there?\\n\"}\n"}
+{"msg":"response","level":"INFO","service":"router","response":"{\"status\":200,\"body\":\"Is anybody out there?\\n\"}\n"}
+{"msg":"request","level":"INFO","service":"router","request":"{\"method\":\"GET\",\"path\":\"/not-found\",\"body\":\"\"}\n"}
 {"msg":"response","level":"INFO","service":"router","response":"{\"status\":404,\"body\":\"\"}\n"}
 Stopping...
 Stopped.
