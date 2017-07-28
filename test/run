@@ -101,7 +101,7 @@ function prefix {
 trap shut_down INT TERM EXIT
 
 if [[ $# -gt 0 ]]; then
-  tests=$@
+  tests=($@)
 else
   tests=(test/cases/*)
 fi
