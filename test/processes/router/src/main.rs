@@ -7,6 +7,8 @@ extern crate slog;
 extern crate slog_json;
 
 use slog::Drain;
+use std::clone::Clone;
+use std::collections::HashMap;
 use std::env;
 use std::fmt;
 use std::fs::File;
@@ -68,10 +70,13 @@ fn run(logger: &slog::Logger) -> io::Result<()> {
 
 fn handle(routes: &Vec<Route>, logger: &slog::Logger, input: &String) -> io::Result<String> {
     info!(logger, "request"; "request" => &input);
-    let request: HttpRequest = parse_json(&input.trim().to_string())?;
-    let route = routes.iter().find(|route| route.matches(&request));
-    let output = match route {
-        Some(route) => route.handle(&request),
+    let incoming_request: IncomingHttpRequest = parse_json(&input.trim().to_string())?;
+    let result = routes
+        .iter()
+        .filter_map(|route| route.matching(&incoming_request))
+        .next();
+    let output = match result {
+        Some((route, outgoing_request)) => route.handle(&outgoing_request),
         None => Ok(NOT_FOUND.to_string()),
     }?;
     info!(logger, "response"; "response" => &output);
@@ -115,16 +120,55 @@ struct Configuration {
 #[derive(Serialize, Deserialize)]
 struct Route {
     method: HttpMethod,
-    path: String,
+    path: RoutePath,
     process: String,
 }
 
 impl Route {
-    fn matches(&self, request: &HttpRequest) -> bool {
-        self.method == request.method && self.path == request.path
+    fn matching(&self, request: &IncomingHttpRequest) -> Option<(&Route, OutgoingHttpRequest)> {
+        if self.method != request.method {
+            return None;
+        }
+
+        let segments: Vec<String> = request
+            .path
+            .split("/")
+            .map(|s| s.to_string())
+            .collect();
+        if segments.len() != self.path.0.len() {
+            return None;
+        }
+
+        let zipped: Vec<(String, &RoutePathSegment)> =
+            segments.into_iter().zip(&self.path.0).collect();
+
+        let matches = zipped
+            .iter()
+            .all(|&(ref request_segment, &ref route_segment)| match route_segment {
+                     &RoutePathSegment::Fixed(ref f) => request_segment == f,
+                     &RoutePathSegment::Variable(_) => true,
+                 });
+        if !matches {
+            return None;
+        }
+
+        let path_params = zipped
+            .into_iter()
+            .filter_map(move |(request_segment, route_segment)| match *route_segment {
+                            RoutePathSegment::Fixed(_) => None,
+                            RoutePathSegment::Variable(ref v) => Some((v.clone(), request_segment)),
+                        })
+            .collect();
+        Some((self,
+              OutgoingHttpRequest {
+                  method: request.method.clone(),
+                  path: request.path.clone(),
+                  pathParams: path_params,
+                  body: request.body.clone(),
+              }))
     }
 
-    fn handle(&self, request: &HttpRequest) -> io::Result<String> {
+    fn handle(&self, request: &OutgoingHttpRequest) -> io::Result<String> {
         let mut stream = UnixStream::connect(&self.process)?;
         write_json(&mut stream, &request)?;
         stream.shutdown(Shutdown::Write)?;
@@ -135,10 +179,28 @@ impl Route {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct HttpRequest {
+#[derive(Debug, Serialize)]
+struct RoutePath(pub Vec<RoutePathSegment>);
+
+#[derive(Debug, Serialize)]
+enum RoutePathSegment {
+    Fixed(String),
+    Variable(String),
+}
+
+#[derive(Debug, Deserialize)]
+struct IncomingHttpRequest {
     method: HttpMethod,
     path: String,
+    body: String,
+}
+
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize)]
+struct OutgoingHttpRequest {
+    method: HttpMethod,
+    path: String,
+    pathParams: HashMap<String, String>,
     body: String,
 }
 
@@ -148,7 +210,7 @@ struct HttpResponse {
     body: String,
 }
 
-#[derive(PartialEq, Eq, Debug, Serialize)]
+#[derive(PartialEq, Eq, Clone, Debug, Serialize)]
 enum HttpMethod {
     GET,
     POST,
@@ -186,5 +248,41 @@ impl serde::de::Visitor for HttpMethodVisitor {
             "POST" => Ok(HttpMethod::POST),
             _ => Err(E::custom(format!("Invalid HTTP method: {}", method))),
         }
+    }
+}
+
+impl serde::Deserialize for RoutePath {
+    fn deserialize<D>(deserializer: D) -> Result<RoutePath, D::Error>
+        where D: serde::Deserializer
+    {
+        deserializer.deserialize_string(RoutePathVisitor)
+    }
+}
+
+struct RoutePathVisitor;
+
+impl serde::de::Visitor for RoutePathVisitor {
+    type Value = RoutePath;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("an HTTP path")
+    }
+
+    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+        where E: serde::de::Error
+    {
+        self.visit_string(v.to_string())
+    }
+
+    fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+        where E: serde::de::Error
+    {
+        Ok(RoutePath(v.split("/")
+                         .map(|segment| if segment.starts_with(":") {
+                                  RoutePathSegment::Variable(segment[1..].to_string())
+                              } else {
+                                  RoutePathSegment::Fixed(segment.to_string())
+                              })
+                         .collect()))
     }
 }
