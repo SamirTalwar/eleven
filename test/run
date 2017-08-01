@@ -106,6 +106,8 @@ else
   tests=(test/cases/*)
 fi
 
+docker-compose up test-infrastructure
+
 success=true
 for dir in ${tests[@]}; do
   echo

@@ -1,0 +1,18 @@
+version: '2.1'
+
+services:
+  test-infrastructure:
+    image: busybox
+    command: ['echo', 'Everything is up and running.']
+    depends_on:
+      postgresql:
+        condition: service_healthy
+
+  postgresql:
+    image: postgres:9.6
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_DB: 'eleven_test'
+    healthcheck:
+      test: 'psql -U "postgres" -d "eleven_test" -c "SELECT 1"'

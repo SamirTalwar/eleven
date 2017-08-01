@@ -1,0 +1,44 @@
+#!/usr/bin/env zsh
+
+set -eu -o pipefail
+
+handler=$1
+postgresql_uri=$2
+
+create_table_query='{"query": "CREATE TABLE IF NOT EXISTS items (id TEXT NOT NULL PRIMARY KEY, value JSON)"}'
+
+case $handler in
+  all)
+    query=$(jq -c '{"query": "SELECT * FROM items"}') ;;
+  create)
+    query=$(jq -c '{
+      "query": "INSERT INTO items VALUES (?, ?)",
+      "parameters": ((.body | fromjson) as $body | [$body.id, ($body | del(.id) | tojson)])
+    }') ;;
+  read)
+    query=$(jq -c '{
+      "query": "SELECT * FROM items WHERE id = ?",
+      "parameters": [.pathParams.id]
+    }') ;;
+  update)
+    query=$(jq -c '{
+      "query": "UPDATE items SET value = ? WHERE id = ?",
+      "parameters": [.body, .pathParams.id]
+    }') ;;
+  delete)
+    query=$(jq -c '{
+      "query": "DELETE FROM items WHERE id = ?",
+      "parameters": [.pathParams.id]
+    }') ;;
+  *)
+    jq -c -n --arg handler $handler \
+      '{"status": 500, "body": ({"message": "Invalid handler.", "handler": $handler} | tojson)}'
+    exit 1
+esac
+
+echo "${create_table_query}\n${query}" \
+  | $(dirname $0)/jsqlon $postgresql_uri \
+  | jq -c -s '{
+    "status": (if (. | all(.success)) then 200 else 400 end),
+    "body": (.[1] | tojson)
+  }'

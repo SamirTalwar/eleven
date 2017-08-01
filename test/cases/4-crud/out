@@ -1,0 +1,54 @@
+HTTP/1.1 200 OK
+Content-Length: 29
+Content-Type: text/plain; charset=utf-8
+
+{"success":true,"results":[]}
+
+HTTP/1.1 200 OK
+Content-Length: 16
+Content-Type: text/plain; charset=utf-8
+
+{"success":true}
+
+HTTP/1.1 200 OK
+Content-Length: 65
+Content-Type: text/plain; charset=utf-8
+
+{"success":true,"results":[{"id":"seven","value":{"payload":7}}]}
+
+HTTP/1.1 200 OK
+Content-Length: 16
+Content-Type: text/plain; charset=utf-8
+
+{"success":true}
+
+HTTP/1.1 200 OK
+Content-Length: 81
+Content-Type: text/plain; charset=utf-8
+
+{"success":true,"results":[{"id":"eight","value":{"payload":[0,0,0,0,1,0,0,0]}}]}
+
+HTTP/1.1 200 OK
+Content-Length: 4
+Content-Type: text/plain; charset=utf-8
+
+null
+
+HTTP/1.1 200 OK
+Content-Length: 16
+Content-Type: text/plain; charset=utf-8
+
+{"success":true}
+
+HTTP/1.1 200 OK
+Content-Length: 29
+Content-Type: text/plain; charset=utf-8
+
+{"success":true,"results":[]}
+
+HTTP/1.1 200 OK
+Content-Length: 180
+Content-Type: text/plain; charset=utf-8
+
+{"success":true,"results":[{"id":"seven","value":{"payload":7}},{"id":"eight","value":{"payload":[0,0,0,0,1,0,0,0]}},{"id":"nine","value":{"payload":"Seven is coming for me…"}}]}
+

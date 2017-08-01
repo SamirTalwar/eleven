@@ -1,0 +1,14 @@
+#!/usr/bin/env zsh
+
+set -eu
+
+read_timeout=30
+
+handler=$1
+socket_path=$2
+config=$3
+postgresql_uri=$(jq -r '.["postgresql-uri"]' < $config)
+
+exec socat -t $read_timeout \
+  UNIX-LISTEN:${socket_path},fork \
+  EXEC:"$(dirname $0)/handle '${handler}' '${postgresql_uri}'"

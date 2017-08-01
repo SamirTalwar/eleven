@@ -1,0 +1,18 @@
+#!/usr/bin/env zsh
+
+set -e
+set -u
+set -o pipefail
+
+export jdbc_url='postgresql://localhost/eleven_test?user=postgres&stringtype=unspecified'
+
+./test/processes/crud/jsqlon $jdbc_url <<< '{"query": "DROP TABLE IF EXISTS items"}' >/dev/null
+./test/helpers/http --check-status GET :8080
+./test/helpers/http --check-status POST :8080 <<< '{"id": "seven", "payload": 7}'
+./test/helpers/http --check-status GET :8080/seven
+./test/helpers/http --check-status POST :8080 <<< '{"id": "eight", "payload": [0, 0, 0, 0, 1, 0, 0, 0]}'
+./test/helpers/http --check-status GET :8080/eight
+./test/helpers/http --check-status PUT :8080/eight <<< '{"payload": 8}'
+./test/helpers/http --check-status POST :8080 <<< '{"id": "nine", "payload": "Seven is coming for me…"}'
+./test/helpers/http GET :8080/not-found
+./test/helpers/http --check-status GET :8080

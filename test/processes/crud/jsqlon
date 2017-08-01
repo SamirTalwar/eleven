@@ -1,0 +1,7 @@
+#!/usr/bin/env zsh
+
+set -eu
+
+query=$(cat)
+
+java -jar $(dirname $0)/jsqlon.jar $@ <<< $query

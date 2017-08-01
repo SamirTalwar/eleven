@@ -1,0 +1,22 @@
+{"msg":"request","level":"INFO","service":"router","request":"{\"method\":\"GET\",\"path\":\"/\",\"body\":\"\"}\n"}
+{"msg":"response","level":"INFO","service":"router","response":"{\"status\":200,\"body\":\"{\\\"success\\\":true,\\\"results\\\":[]}\"}\n"}
+{"msg":"request","level":"INFO","service":"router","request":"{\"method\":\"POST\",\"path\":\"/\",\"body\":\"{\\\"id\\\": \\\"seven\\\", \\\"payload\\\": 7}\\n\"}\n"}
+{"msg":"response","level":"INFO","service":"router","response":"{\"status\":200,\"body\":\"{\\\"success\\\":true}\"}\n"}
+{"msg":"request","level":"INFO","service":"router","request":"{\"method\":\"GET\",\"path\":\"/seven\",\"body\":\"\"}\n"}
+{"msg":"response","level":"INFO","service":"router","response":"{\"status\":200,\"body\":\"{\\\"success\\\":true,\\\"results\\\":[{\\\"id\\\":\\\"seven\\\",\\\"value\\\":{\\\"payload\\\":7}}]}\"}\n"}
+{"msg":"request","level":"INFO","service":"router","request":"{\"method\":\"POST\",\"path\":\"/\",\"body\":\"{\\\"id\\\": \\\"eight\\\", \\\"payload\\\": [0, 0, 0, 0, 1, 0, 0, 0]}\\n\"}\n"}
+{"msg":"response","level":"INFO","service":"router","response":"{\"status\":200,\"body\":\"{\\\"success\\\":true}\"}\n"}
+{"msg":"request","level":"INFO","service":"router","request":"{\"method\":\"GET\",\"path\":\"/eight\",\"body\":\"\"}\n"}
+{"msg":"response","level":"INFO","service":"router","response":"{\"status\":200,\"body\":\"{\\\"success\\\":true,\\\"results\\\":[{\\\"id\\\":\\\"eight\\\",\\\"value\\\":{\\\"payload\\\":[0,0,0,0,1,0,0,0]}}]}\"}\n"}
+{"msg":"request","level":"INFO","service":"router","request":"{\"method\":\"PUT\",\"path\":\"/eight\",\"body\":\"{\\\"payload\\\": 8}\\n\"}\n"}
+Unexpected end-of-input: was expecting closing quote for a string value
+ at [Source: {"query":"UPDATE items SET value = ? WHERE id = ?","parameters":["{\"payload\": 8}; line: 1, column: 165]
+{"msg":"response","level":"INFO","service":"router","response":"{\"status\":200,\"body\":\"null\"}\n"}
+{"msg":"request","level":"INFO","service":"router","request":"{\"method\":\"POST\",\"path\":\"/\",\"body\":\"{\\\"id\\\": \\\"nine\\\", \\\"payload\\\": \\\"Seven is coming for me…\\\"}\\n\"}\n"}
+{"msg":"response","level":"INFO","service":"router","response":"{\"status\":200,\"body\":\"{\\\"success\\\":true}\"}\n"}
+{"msg":"request","level":"INFO","service":"router","request":"{\"method\":\"GET\",\"path\":\"/not-found\",\"body\":\"\"}\n"}
+{"msg":"response","level":"INFO","service":"router","response":"{\"status\":200,\"body\":\"{\\\"success\\\":true,\\\"results\\\":[]}\"}\n"}
+{"msg":"request","level":"INFO","service":"router","request":"{\"method\":\"GET\",\"path\":\"/\",\"body\":\"\"}\n"}
+{"msg":"response","level":"INFO","service":"router","response":"{\"status\":200,\"body\":\"{\\\"success\\\":true,\\\"results\\\":[{\\\"id\\\":\\\"seven\\\",\\\"value\\\":{\\\"payload\\\":7}},{\\\"id\\\":\\\"eight\\\",\\\"value\\\":{\\\"payload\\\":[0,0,0,0,1,0,0,0]}},{\\\"id\\\":\\\"nine\\\",\\\"value\\\":{\\\"payload\\\":\\\"Seven is coming for me…\\\"}}]}\"}\n"}
+Stopping...
+Stopped.

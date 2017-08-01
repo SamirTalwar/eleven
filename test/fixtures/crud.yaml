@@ -1,0 +1,72 @@
+processes:
+  http:
+    directory: ../processes/http
+    config:
+      port: 8080
+      process: router
+
+  router:
+    directory: ../processes/router
+    prepare:
+      - cargo
+      - build
+      - --quiet
+    run:
+      - ./target/debug/router
+    config:
+      routes:
+        - method: get
+          path: /
+          process: all
+        - method: post
+          path: /
+          process: create
+        - method: get
+          path: /:id
+          process: read
+        - method: put
+          path: /:id
+          process: update
+        - method: delete
+          path: /:id
+          process: delete
+
+  all:
+    directory: ../processes/crud
+    run:
+      - ./run
+      - all
+    config:
+      postgresql-uri: "postgresql://localhost/eleven_test?user=postgres&stringtype=unspecified"
+
+  create:
+    directory: ../processes/crud
+    run:
+      - ./run
+      - create
+    config:
+      postgresql-uri: "postgresql://localhost/eleven_test?user=postgres&stringtype=unspecified"
+
+  read:
+    directory: ../processes/crud
+    run:
+      - ./run
+      - read
+    config:
+      postgresql-uri: "postgresql://localhost/eleven_test?user=postgres&stringtype=unspecified"
+
+  update:
+    directory: ../processes/crud
+    run:
+      - ./run
+      - update
+    config:
+      postgresql-uri: "postgresql://localhost/eleven_test?user=postgres&stringtype=unspecified"
+
+  delete:
+    directory: ../processes/crud
+    run:
+      - ./run
+      - delete
+    config:
+      postgresql-uri: "postgresql://localhost/eleven_test?user=postgres&stringtype=unspecified"

@@ -214,6 +214,8 @@ struct HttpResponse {
 enum HttpMethod {
     GET,
     POST,
+    PUT,
+    DELETE,
 }
 
 impl serde::Deserialize for HttpMethod {
@@ -246,6 +248,8 @@ impl serde::de::Visitor for HttpMethodVisitor {
         match method.as_ref() {
             "GET" => Ok(HttpMethod::GET),
             "POST" => Ok(HttpMethod::POST),
+            "PUT" => Ok(HttpMethod::PUT),
+            "DELETE" => Ok(HttpMethod::DELETE),
             _ => Err(E::custom(format!("Invalid HTTP method: {}", method))),
         }
     }
