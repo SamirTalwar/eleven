@@ -1,0 +1,7 @@
+#!/usr/bin/env zsh
+
+set -e
+set -u
+set -o pipefail
+
+./test/helpers/http --check-status GET :8081

@@ -24,8 +24,9 @@ ElevenProcess = Struct.new(:name, :directory, :prepare_command, :run_command, :s
 end
 
 class App
-  def initialize(app_file:, detach:, pid_file:)
+  def initialize(app_file:, overrides:, detach:, pid_file:)
     @app_file = app_file
+    @overrides = overrides
     @detach = detach
     @pid_file = pid_file
 
@@ -38,6 +39,7 @@ class App
 
   def run!
     debug "Application: #{@app_file}"
+    debug "Overrides: #{@overrides.inspect}"
     debug "Directory: #{@dir}"
 
     processes = configure()
@@ -83,6 +85,7 @@ class App
 
   def configure
     configuration = YAML.load(@app_file.read)
+    merge_overrides @overrides, configuration
     sockets = {}
     configuration['processes'].each { |name, process|
       sockets[name] = (@socket_dir + "#{name}.sock").to_s
@@ -179,6 +182,21 @@ class App
     FileUtils.rm_r @dir
   end
 
+  def merge_overrides(overrides, configuration)
+    overrides.each do |name, value|
+      merge_override(name.split('.'), value, configuration)
+    end
+  end
+
+  def merge_override(path, value, node)
+    first, *rest = path
+    if rest.empty?
+      node[first] = value
+    else
+      merge_override(rest, value, node[first])
+    end
+  end
+
   def reference_sockets(node, sockets)
     if node.is_a?(Hash)
       node.each do |key, value|
@@ -208,17 +226,44 @@ end
 
 if __FILE__ == $0
   options = {
+    overrides: {},
     detach: false,
     pid_file: nil,
   }
+
+  PropertyNameRegexp = /[A-Za-z0-9\-]+(?:\.[A-Za-z0-9\-]+)+/
+  StringProperty = Struct.new(:name, :value)
+  StringPropertyRegexp = /^(#{PropertyNameRegexp})=(.+)$/
+  NumberProperty = Struct.new(:name, :value)
+  NumberPropertyRegexp = /^(#{PropertyNameRegexp})=(\d+(?:\.\d+)?)$/
+
   OptionParser.new do |opts|
+    opts.accept(StringProperty) do |property|
+      match = StringPropertyRegexp.match(property)
+      raise "\"#{property}\" is not a valid string property assignment." unless match
+      StringProperty.new(match[1], match[2])
+    end
+
+    opts.accept(NumberProperty) do |property|
+      match = NumberPropertyRegexp.match(property)
+      raise "\"#{property}\" is not a valid numeric property assignment." unless match
+      value = match[2] =~ /\./ ? match[2].to_f : match[2].to_i
+      NumberProperty.new(match[1], value)
+    end
+
     opts.banner = "Usage: #{$0} [options]"
 
-    opts.on("-d", "--detach", "Run in the background") do |v|
-      options[:detach] = v
+    opts.on('-d', '--detach', 'Run in the background') do |detach|
+      options[:detach] = detach
     end
-    opts.on("--pid-file=PID_FILE", "PID file (when detaching)") do |v|
-      options[:pid_file] = Pathname.new(v)
+    opts.on('--pid-file=PID_FILE', 'PID file (when detaching)') do |pid_file|
+      options[:pid_file] = Pathname.new(pid_file)
+    end
+    opts.on('--set-string=PROPERTY', 'Sets or overrides a string configuration property', StringProperty) do |property|
+      options[:overrides][property.name] = property.value
+    end
+    opts.on('--set-number=PROPERTY', 'Sets or overrides a numeric configuration property', NumberProperty) do |property|
+      options[:overrides][property.name] = property.value
     end
   end.parse!
 

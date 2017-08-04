@@ -15,8 +15,8 @@ err_diff_file=$(mktemp)
 command -v git > /dev/null && diff=(git diff --no-index --color) || diff=(diff)
 
 function set_up {
-  ./app --detach --pid-file=$pid_file $1 || return $?
-  pid=$(<$pid_file)
+  ./app --detach --pid-file=$pid_file $@ || return $?
+  pid=$(< $pid_file)
 }
 
 function tear_down {
@@ -44,7 +44,7 @@ function app_is_alive {
 }
 
 function run_test {
-  local dir test_passed exit_status out_file err_file
+  local dir test_passed arguments exit_status out_file err_file
   dir=$1
   test_passed=true
   out_file="${dir}/out.actual"
@@ -53,8 +53,9 @@ function run_test {
   echo $dir
   rm -f $out_file $err_file
 
-  exit_status=0
-  set_up $(<"${dir}/config-path") > $out_file 2> $err_file || exit_status=$?
+  IFS=$'\n' arguments=($(< "${dir}/arguments"))
+  set_up ${arguments[@]} > $out_file 2> $err_file
+  exit_status=$?
   if [[ $exit_status -ne 0 ]]; then
     echo '  failed to start'
     echo "  exit status: ${exit_status}"
