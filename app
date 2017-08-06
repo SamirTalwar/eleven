@@ -64,27 +64,27 @@ class App
 
     prepare processes
 
-    @running = true
-    running_processes = start processes
-
-    if @detach
-      @forked = fork
-      if @forked
-        if @pid_file
-          @pid_file.write("#{@forked}\n")
-        end
-        exit
-      end
-    end
-
+    running_processes = []
     begin
+      running_processes = start processes
+
+      if @detach
+        @forked = fork
+        if @forked
+          if @pid_file
+            @pid_file.write("#{@forked}\n")
+          end
+          exit
+        end
+      end
+
       until running_processes.empty?
         running_processes.select!(&:is_alive?)
         sleep 1
       end
     rescue Interrupt
     ensure
-      stop running_processes
+      stop running_processes if !@forked && running_processes
     end
   ensure
     tear_down unless @forked
@@ -161,7 +161,6 @@ class App
 
   def stop(started)
     info 'Stopping...'
-    @running = false
 
     started.each do |process|
       pid = process[:pid]
