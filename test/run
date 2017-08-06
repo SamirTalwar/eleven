@@ -28,7 +28,8 @@ function tear_down {
       sleep 0.1
     done
     if app_is_alive; then
-      echo >&2 "The application (PID ${pid}) has not terminated. Better investigate." && exit 1
+      echo >&2 "The application (PID ${pid}) has not terminated. Better investigate."
+      return 1
     fi
   fi
 }
@@ -71,6 +72,7 @@ function run_test {
   exit_status=$?
 
   tear_down
+  [[ $? -eq 0 ]] || test_passed=false
 
   [[ $exit_status -eq 0 ]] || test_passed=false
   ${diff[@]} "${dir}/out" $out_file > $out_diff_file || test_passed=false
