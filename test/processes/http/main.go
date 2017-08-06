@@ -27,7 +27,7 @@ type HttpResponse struct {
 }
 
 func main() {
-	configuration := readConfiguration(os.Args[2])
+	configuration := readConfiguration(os.Args[1])
 
 	http.HandleFunc("/", func(response http.ResponseWriter, request *http.Request) {
 		requestBody := new(bytes.Buffer)

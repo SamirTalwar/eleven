@@ -1,6 +1,7 @@
 processes:
   http:
     directory: ../processes/http
+    socket: false
     config:
       port: 8080
       process: router

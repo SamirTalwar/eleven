@@ -23,6 +23,22 @@ ElevenProcess = Struct.new(:name, :directory, :prepare_command, :run_command, :s
   end
 end
 
+RunningProcess = Struct.new(:name, :socket, :pid) do
+  def initialize(name:, socket:, pid:)
+    self.name = name
+    self.socket = socket
+    self.pid = pid
+  end
+
+  def is_alive?
+    Process.kill 0, pid
+    true
+  rescue Errno::ESRCH
+    info "Process \"#{name}\" has died."
+    false
+  end
+end
+
 class App
   def initialize(app_file:, overrides:, detach:, pid_file:)
     @app_file = app_file
@@ -48,6 +64,9 @@ class App
 
     prepare processes
 
+    @running = true
+    running_processes = start processes
+
     if @detach
       @forked = fork
       if @forked
@@ -58,26 +77,14 @@ class App
       end
     end
 
-    @running = true
-    started = start processes
-
     begin
-      running = started
-      until running.empty?
-        running.reject! { |process|
-          begin
-            Process.kill 0, process[:pid]
-            false
-          rescue Errno::ESRCH
-            info "Process \"#{process[:name]}\" has died."
-            true
-          end
-        }
+      until running_processes.empty?
+        running_processes.select!(&:is_alive?)
         sleep 1
       end
     rescue Interrupt
     ensure
-      stop started
+      stop running_processes
     end
   ensure
     tear_down unless @forked
@@ -86,10 +93,14 @@ class App
   def configure
     configuration = YAML.load(@app_file.read)
     merge_overrides @overrides, configuration
+
     sockets = {}
-    configuration['processes'].each { |name, process|
-      sockets[name] = (@socket_dir + "#{name}.sock").to_s
-    }
+    configuration['processes'].each do |name, process|
+      if process['socket'] != false
+        sockets[name] = @socket_dir + "#{name}.sock"
+      end
+    end
+
     processes = configuration['processes'].map { |name, process|
       directory = @app_file.dirname + process['directory']
       ElevenProcess.new(
@@ -128,15 +139,20 @@ class App
       end
 
       begin
-        pid = Process.spawn(*process.run_command, process.socket, config_file.to_s,
+        pid = Process.spawn(*process.run_command, process.socket.to_s, config_file.to_s,
                             :in => :in, :out => :out, :err => :err,
                             :chdir => process.directory)
-        started << {name: process.name, pid: pid}
-        Thread.new do
-          Process.wait(pid)
-        end
+        started << RunningProcess.new(name: process.name, socket: process.socket, pid: pid)
       rescue StandardError => error
         info "Error spawning #{process.name}. #{error.class}: #{error.message}"
+      end
+    end
+
+    started.each do |process|
+      next unless process.socket
+      until process.socket.exist?
+        break unless process.is_alive?
+        sleep 1
       end
     end
 
@@ -201,7 +217,7 @@ class App
     if node.is_a?(Hash)
       node.each do |key, value|
         if key == 'process'
-          node[key] = sockets[value]
+          node[key] = sockets[value].to_s
         else
           node[key] = reference_sockets(value, sockets)
         end
