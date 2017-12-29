@@ -3,9 +3,7 @@
 set -eu -o pipefail
 
 handler=$1
-postgresql_uri=$2
-
-create_table_query='{"query": "CREATE TABLE IF NOT EXISTS items (id TEXT NOT NULL PRIMARY KEY, value JSON)"}'
+jsqlon_socket_path=$2
 
 case $handler in
   all)
@@ -36,9 +34,9 @@ case $handler in
     exit 1
 esac
 
-echo "${create_table_query}\n${query}" \
-  | $(dirname $0)/jsqlon $postgresql_uri \
-  | jq -c -s '{
-    "status": (if (. | all(.success)) then 200 else 400 end),
-    "body": (.[1] | tojson)
+echo $query \
+  | socat UNIX:$jsqlon_socket_path - \
+  | jq -c '{
+    "status": (if .success then 200 else 400 end),
+    "body": (. | tojson)
   }'

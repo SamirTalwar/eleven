@@ -38,7 +38,8 @@ processes:
       - ./run
       - all
     config:
-      postgresql-uri: "postgresql://localhost/eleven_test?user=postgres&stringtype=unspecified"
+      jsqlon:
+        process: jsqlon
 
   create:
     directory: ../processes/crud
@@ -46,7 +47,8 @@ processes:
       - ./run
       - create
     config:
-      postgresql-uri: "postgresql://localhost/eleven_test?user=postgres&stringtype=unspecified"
+      jsqlon:
+        process: jsqlon
 
   read:
     directory: ../processes/crud
@@ -54,7 +56,8 @@ processes:
       - ./run
       - read
     config:
-      postgresql-uri: "postgresql://localhost/eleven_test?user=postgres&stringtype=unspecified"
+      jsqlon:
+        process: jsqlon
 
   update:
     directory: ../processes/crud
@@ -62,12 +65,21 @@ processes:
       - ./run
       - update
     config:
-      postgresql-uri: "postgresql://localhost/eleven_test?user=postgres&stringtype=unspecified"
+      jsqlon:
+        process: jsqlon
 
   delete:
     directory: ../processes/crud
     run:
       - ./run
       - delete
+    config:
+      jsqlon:
+        process: jsqlon
+
+  jsqlon:
+    directory: ../processes/crud
+    run:
+      ./jsqlon
     config:
       postgresql-uri: "postgresql://localhost/eleven_test?user=postgres&stringtype=unspecified"

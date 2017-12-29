@@ -1,7 +1,11 @@
 #!/usr/bin/env zsh
 
-set -eu
+set -e
+set -u
+set -o pipefail
 
-query=$(cat)
+socket_path=$1
+config=$2
+postgresql_uri=$(jq -r '.["postgresql-uri"]' < $config)
 
-java -jar $(dirname $0)/jsqlon.jar $@ <<< $query
+exec java -jar $(dirname $0)/jsqlon.jar --socket $socket_path $postgresql_uri

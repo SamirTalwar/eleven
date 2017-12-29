@@ -6,7 +6,6 @@ set -o pipefail
 
 export jdbc_url='postgresql://localhost/eleven_test?user=postgres&stringtype=unspecified'
 
-./test/processes/crud/jsqlon $jdbc_url <<< '{"query": "DROP TABLE IF EXISTS items"}' >/dev/null
 ./test/helpers/http --check-status GET :8080
 ./test/helpers/http --check-status POST :8080 <<< '{"id": "seven", "payload": 7}'
 ./test/helpers/http --check-status GET :8080/seven

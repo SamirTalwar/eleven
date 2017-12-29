@@ -1,14 +1,28 @@
 #!/usr/bin/env zsh
 
-set -eu
+set -e
+set -u
+set -o pipefail
 
 read_timeout=30
+create_table_query='{"query": "CREATE TABLE IF NOT EXISTS items (id TEXT NOT NULL PRIMARY KEY, value JSON)"}'
 
 handler=$1
 socket_path=$2
 config=$3
-postgresql_uri=$(jq -r '.["postgresql-uri"]' < $config)
+jsqlon_socket_path=$(jq -r '.jsqlon.process' < $config)
+
+while [[ ! -S $jsqlon_socket_path ]]; do
+  sleep 1
+done
+
+create_table_result=$(socat UNIX:$jsqlon_socket_path - <<< $create_table_query)
+if [[ $(jq '.success' <<< $create_table_result) != 'true' ]]; then
+  echo >&2 'Failed to create the database table.'
+  echo >&2 $create_table_result
+  exit 1
+fi
 
 exec socat -t $read_timeout \
   UNIX-LISTEN:${socket_path},fork \
-  EXEC:"$(dirname $0)/handle '${handler}' '${postgresql_uri}'"
+  EXEC:"$(dirname $0)/handle '${handler}' '${jsqlon_socket_path}'"
